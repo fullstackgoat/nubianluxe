@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Client {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  phone        String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model Appointment {
+  id                    String            @id @default(cuid())
+  clientId              String?
+  client                Client?           @relation(fields: [clientId], references: [id])
+  clientName            String
+  clientEmail           String
+  clientPhone           String
+  service               String
+  serviceCategory       String
+  servicePrice          Int               @default(0)   // listed starting price in cents (e.g. "$300+" -> 30000)
+  servicePaid           Boolean           @default(false) // true if service fee was paid upfront OR marked paid by admin
+  tier                  BookingTier
+  tierFee               Int               @default(0)
+  deposit               Int               @default(10000)
+  date                  DateTime
+  duration              Int
+  status                AppointmentStatus @default(PENDING)
+  notes                 String?
+  referencePhotoUrl     String?
+  stripePaymentIntentId String?
+  depositPaid           Boolean           @default(false)
+  tierFeePaid           Boolean           @default(false)
+  reminderSent48h       Boolean           @default(false)
+  reminderSent2h        Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model BlockedDate {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+enum BookingTier {
+  REGULAR
+  PREMIUM
+  VIP
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
