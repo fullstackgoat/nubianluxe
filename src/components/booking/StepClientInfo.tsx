@@ -1,0 +1,105 @@
+"use client";
+
+import type { BookingState } from "./BookingWizard";
+import { ArrowLeft } from "lucide-react";
+
+interface Props {
+  state: BookingState;
+  update: (patch: Partial<BookingState>) => void;
+  onNext: () => void;
+  onBack: () => void;
+}
+
+export default function StepClientInfo({ state, update, onNext, onBack }: Props) {
+  const isValid =
+    state.clientName.length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.clientEmail) &&
+    state.clientPhone.replace(/\D/g, "").length >= 10;
+
+  const handleSubmit = () => {
+    if (!isValid) return;
+    // Invalidate any previously-created PaymentIntent so Step 5 will re-init
+    // against the latest client info (in case they came back to fix a typo).
+    if (state.clientSecret) {
+      update({ clientSecret: "", appointmentId: "", totalCharge: 0 });
+    }
+    onNext();
+  };
+
+  const field = (
+    label: string,
+    key: keyof BookingState,
+    type = "text",
+    placeholder = ""
+  ) => (
+    <div>
+      <label className="block text-[0.65rem] tracking-[0.2em] uppercase text-white/40 mb-2">
+        {label}
+      </label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={state[key] as string}
+        onChange={(e) => update({ [key]: e.target.value } as Partial<BookingState>)}
+        className="w-full bg-[rgba(255,255,255,0.04)] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-[var(--color-gold)] transition-colors duration-200"
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 style={{ fontFamily: "var(--font-display)" }} className="text-3xl font-light text-white italic mb-1">
+          Your Information
+        </h2>
+        <p className="text-white/40 text-sm">We&apos;ll use this to confirm your appointment and send reminders.</p>
+      </div>
+
+      {/* Booking summary */}
+      <div className="glass-card p-5 grid grid-cols-2 gap-3 text-sm">
+        {[
+          { label: "Service",   value: state.service },
+          { label: "Tier",      value: state.tier.charAt(0) + state.tier.slice(1).toLowerCase() },
+          { label: "Date",      value: state.date ? new Date(state.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric" }) : "" },
+          { label: "Time",      value: state.timeSlot },
+        ].map(({ label, value }) => (
+          <div key={label}>
+            <p className="text-[0.6rem] tracking-[0.2em] uppercase text-white/30">{label}</p>
+            <p className="text-white mt-0.5">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        {field("Full Name", "clientName", "text", "Your name")}
+        {field("Email Address", "clientEmail", "email", "you@example.com")}
+        {field("Phone Number", "clientPhone", "tel", "(555) 000-0000")}
+        <div>
+          <label className="block text-[0.65rem] tracking-[0.2em] uppercase text-white/40 mb-2">
+            Notes (optional)
+          </label>
+          <textarea
+            placeholder="Hair length, inspiration style, allergies, or anything we should know..."
+            value={state.notes}
+            onChange={(e) => update({ notes: e.target.value })}
+            rows={3}
+            className="w-full bg-[rgba(255,255,255,0.04)] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-[var(--color-gold)] transition-colors duration-200 resize-none"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button onClick={onBack} className="btn-outline flex items-center gap-2 px-5">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={!isValid}
+          className={`btn-gold flex-1 py-4 text-sm ${!isValid ? "opacity-40 cursor-not-allowed" : ""}`}
+        >
+          Continue — Choose Payment
+        </button>
+      </div>
+    </div>
+  );
+}
