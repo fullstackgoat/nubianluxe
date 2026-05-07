@@ -50,9 +50,9 @@ export const metadata: Metadata = {
       "Premium braiding, natural hair & color services. Honoring the craft, elevating the experience. Open 24/7 in The Woodlands, TX.",
     images: [
       {
-        url: "/assets/preview-image1.png?v=3",
-        width: 1200,
-        height: 630,
+        url: "/assets/preview-image1.png?v=4",
+        width: 1024,
+        height: 571,
         alt: "Nubian Luxe Braiding Lounge",
       },
     ],
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     title: "Nubian Luxe | Luxury Braiding Lounge",
     description:
       "Premium braiding, natural hair & color services. Open 24/7 in The Woodlands, TX.",
-    images: [{ url: "/assets/preview-image1.png?v=3", alt: "Nubian Luxe" }],
+    images: [{ url: "/assets/preview-image1.png?v=4", alt: "Nubian Luxe" }],
   },
   robots: {
     index: true,
