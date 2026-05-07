@@ -1,185 +1,210 @@
-'use client'
+"use client";
 
-import { MotionDiv } from './motion/MotionDiv'
-import { Calendar, MapPin, Phone, Scissors } from 'lucide-react'
-import Image from 'next/image'
+import { motion } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import { Phone, MapPin, Clock, ArrowUpRight } from "lucide-react";
+
+const paragraphs = [
+  "At NLBL, I've created a home-based, professional, and comfortable space where the artistry of braiding meets old-school hair care values and modern luxury accommodations. My goal is to provide exceptional service, expert hair care, and an uplifting environment where both clients and stylists can take pride in the experience.",
+  "Braiding, to me, is more than just a style — it's an art form and a cultural tradition that honors our African American roots. As a Compton, California native with deep Louisiana and Texas ties, I celebrate the rich heritage of African American braiding as a way to embrace artistry, protect our hair, and simplify daily self-care.",
+  "As a licensed cosmetologist, I am qualified to offer shampoo and conditioning treatments, scissor and clipper cuts, hair color, and scalp treatments — all designed to enhance your hair care experience. I specialize in working with tender-headed clients and those with long, thick hair, ensuring a gentle and stress-free service.",
+  "More than anything, I am committed to fostering a positive, safe, and drama-free space where clients feel at ease, cared for, and uplifted. Your time in my chair is more than just an appointment — it's a space for restoration, relaxation, and empowerment.",
+];
 
 export default function AboutMe() {
   return (
-    <section className="relative bg-black py-20 px-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-[url('/pattern.png')] bg-repeat" />
-      </div>
-      
-      <div className="relative max-w-7xl mx-auto">
-        <MotionDiv
-          className="mb-16 text-center"
-          initial={{ opacity: 0, y: 20 }}
+    <section id="about" className="relative py-28 bg-[var(--color-obsidian)]">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
+
+      <div className="section-container">
+        {/* Section label */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-20"
         >
-          <h2 className="text-4xl font-bold text-primary mb-4">
-            ABOUT ME
+          <p className="text-[0.65rem] tracking-[0.35em] uppercase text-[var(--color-gold-dark)] mb-4">
+            The Artisan
+          </p>
+          <h2
+            style={{ fontFamily: "var(--font-display)" }}
+            className="text-5xl md:text-6xl font-light text-white italic mb-6"
+          >
+            About Me
           </h2>
-        </MotionDiv>
-        
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Bio Text */}
-          <MotionDiv
-            className="space-y-6 text-white"
-            initial={{ opacity: 0, x: -30 }}
+          <div className="gold-divider" />
+        </motion.div>
+
+        {/* Two-column editorial layout */}
+        <div className="grid lg:grid-cols-2 gap-16 items-start">
+          {/* Left — portrait + contact */}
+          <motion.div
+            initial={{ opacity: 0, x: -32 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.8 }}
+            className="lg:sticky lg:top-28 space-y-8"
           >
-            <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-primary">WELCOME TO NUBIAN LUXE BRAIDING LOUNGE</h3>
-              <p className="leading-relaxed">
-                AT NLBL, I'VE CREATED A HOME-BASED, PROFESSIONAL, AND COMFORTABLE SPACE WHERE THE ARTISTRY OF 
-                BRAIDING MEETS OLD-SCHOOL HAIR CARE VALUES AND MODERN LUXURY ACCOMMODATIONS. MY GOAL IS TO 
-                PROVIDE EXCEPTIONAL SERVICE, EXPERT HAIR CARE, AND AN UPLIFTING ENVIRONMENT WHERE BOTH CLIENTS 
-                AND STYLISTS CAN TAKE PRIDE IN THE EXPERIENCE.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="leading-relaxed">
-                BRAIDING, TO ME, IS MORE THAN JUST A STYLE—IT'S AN ART FORM AND A CULTURAL TRADITION THAT HONORS 
-                OUR AFRICAN AMERICAN ROOTS. AS A COMPTON, CALIFORNIA NATIVE WITH DEEP LOUISIANA AND TEXAS TIES, I 
-                CELEBRATE THE RICH HERITAGE OF AFRICAN AMERICAN BRAIDING AS A WAY TO EMBRACE ARTISTRY, PROTECT 
-                OUR HAIR, AND SIMPLIFY DAILY SELF-CARE.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="leading-relaxed">
-                AS A LICENSED COSMETOLOGIST, I AM QUALIFIED TO OFFER SHAMPOO AND CONDITIONING TREATMENTS, 
-                SCISSOR AND CLIPPER CUTS, HAIR COLOR, AND SCALP TREATMENTS—ALL DESIGNED TO ENHANCE YOUR HAIR 
-                CARE EXPERIENCE. WHILE ALL HAIR TYPES AND LENGTHS ARE WELCOME, I SPECIALIZE IN WORKING WITH 
-                TENDER-HEADED CLIENTS AND THOSE WITH LONG, THICK HAIR, ENSURING A GENTLE AND STRESS-FREE 
-                SERVICE.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="leading-relaxed">
-                MORE THAN ANYTHING, I AM COMMITTED TO FOSTERING A POSITIVE, SAFE, AND DRAMA-FREE SPACE WHERE 
-                CLIENTS FEEL AT EASE, CARED FOR, AND UPLIFTED. I UNDERSTAND THE POWER OF MY POSITION—LITERALLY 
-                STANDING OVER YOUR HEAD—AND I TAKE THAT RESPONSIBILITY SERIOUSLY. YOUR TIME IN MY CHAIR IS MORE 
-                THAN JUST AN APPOINTMENT; IT'S A SPACE FOR RESTORATION, RELAXATION, AND EMPOWERMENT.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="leading-relaxed">
-                AS A WIFE, MOTHER OF FOUR ADULT CHILDREN, AND GRANDMOTHER OF TWO, I UNDERSTAND THE IMPORTANCE OF SELF-CARE AND THE NEED TO POUR INTO 
-                OURSELVES. DESPITE TODAY'S POLITICAL AND SOCIAL CLIMATE, I BELIEVE IN FOCUSING ON WHAT WE CAN CONTROL—OUR MENTAL, PHYSICAL, AND SPIRITUAL 
-                GROWTH. WE ARE NOT DEFEATED, AND AT NLBL, I HOPE TO PROVIDE A SPACE WHERE YOU FEEL REJUVENATED, EMPOWERED, AND READY TO TAKE ON THE WORLD.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="leading-relaxed">
-                AT NLBL, YOU'LL EXPERIENCE A SPACE DESIGNED FOR RELAXATION, PRODUCTIVITY, AND COMFORT—WHETHER YOU NEED A MOMENT TO UNWIND OR CONTINUE 
-                WORKING WHILE BEING SERVICED. WITH 24/7 BOOKING OPTIONS, I STRIVE TO ACCOMMODATE YOUR SCHEDULE AND LIFESTYLE, ENSURING FLEXIBILITY WITHOUT 
-                COMPROMISING THE QUALITY OF CARE.
-              </p>
-            </div>
-            
-            <div className="mt-8">
-              <p className="text-xl font-bold text-primary">
-                ✨ LET'S HONOR OUR ROOTS AND REDEFINE THE BRAIDING EXPERIENCE TOGETHER.
-              </p>
-            </div>
-          </MotionDiv>
-          
-          {/* Portrait and Contact Info */}
-          <div>
-            <MotionDiv
-              className="mb-10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-            >
-              <div className="relative max-w-md mx-auto">
-                {/* Ornate Gold Frame */}
-                <div className="relative aspect-[4/5] overflow-hidden">
-                  {/* Portrait Image */}
-                  <div className="absolute inset-[12%] z-10 overflow-hidden rounded-sm">
-                    <Image
-                      src="/stylist-portrait.jpg"
-                      alt="Taliah Mason, Owner & Stylist"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  
-                  {/* Gold Frame */}
-                  <Image
-                    src="/assets/gold-frame.png"
-                    alt="Gold ornate frame"
-                    fill
-                    className="object-contain z-20"
-                    priority
-                  />
-                  
-                  {/* Name and Title */}
-                  <div className="absolute bottom-[15%] right-[15%] bg-black/70 backdrop-blur-sm px-4 py-2 rounded-lg border border-primary/40 z-30">
-                    <h3 className="text-xl font-bold text-primary">TALIAH MASON</h3>
-                    <p className="text-white text-sm">OWNER & STYLIST</p>
-                  </div>
+            {/* Portrait */}
+            <div className="relative max-w-sm mx-auto lg:mx-0">
+              {/* Gold accent border */}
+              <div className="absolute -inset-3 rounded-2xl border border-[rgba(201,168,76,0.2)]" />
+              <div className="absolute -inset-6 rounded-3xl border border-[rgba(201,168,76,0.08)]" />
+
+              <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
+                <Image
+                  src="/stylist-portrait.jpg"
+                  alt="Taliah Mason, Owner & Stylist at Nubian Luxe"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                {/* Gold frame overlay */}
+                <Image
+                  src="/assets/gold-frame.png"
+                  alt=""
+                  fill
+                  className="object-contain z-10 pointer-events-none"
+                />
+                {/* Name badge */}
+                <div className="absolute bottom-5 right-5 z-20 bg-[rgba(10,10,10,0.85)] backdrop-blur-md px-4 py-3 rounded-xl border border-[rgba(201,168,76,0.3)]">
+                  <p
+                    style={{ fontFamily: "var(--font-display)" }}
+                    className="text-lg text-[var(--color-gold)] font-light"
+                  >
+                    Taliah Mason
+                  </p>
+                  <p className="text-white/60 text-xs tracking-[0.15em] uppercase mt-0.5">
+                    Owner &amp; Stylist
+                  </p>
                 </div>
               </div>
-            </MotionDiv>
-            
-            {/* Contact Me */}
-            <MotionDiv
-              className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-primary/10"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <h3 className="text-2xl font-bold text-primary mb-6">CONTACT ME</h3>
-              
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-full">
-                    <Calendar className="w-6 h-6 text-primary" />
+            </div>
+
+            {/* Contact card */}
+            <div className="glass-card p-7 space-y-5">
+              <h3 className="text-[0.65rem] tracking-[0.3em] uppercase text-[var(--color-gold-dark)]">
+                Contact &amp; Location
+              </h3>
+              {[
+                { icon: Phone,  label: "Phone",    value: "346-459-0146 (TEXT)", href: "sms:3464590146" },
+                { icon: MapPin, label: "Location", value: "The Woodlands / Spring, TX", href: undefined },
+                { icon: Clock,  label: "Hours",    value: "Open 24/7", href: undefined },
+              ].map(({ icon: Icon, label, value, href }) => (
+                <div key={label} className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full border border-[rgba(201,168,76,0.2)] flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-[var(--color-gold)]" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400">SERVICE DAYS</p>
-                    <p className="text-white font-medium">24/7</p>
+                    <p className="text-[0.65rem] text-white/30 uppercase tracking-widest">{label}</p>
+                    {href ? (
+                      <a href={href} className="text-white text-sm hover:text-[var(--color-gold)] transition-colors duration-300">
+                        {value}
+                      </a>
+                    ) : (
+                      <p className="text-white text-sm">{value}</p>
+                    )}
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-full">
-                    <MapPin className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">LOCATION</p>
-                    <p className="text-white font-medium">THE WOODLANDS/SPRING, TX</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-full">
-                    <Phone className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">PHONE</p>
-                    <p className="text-white font-medium">346-459-0146 TEXT</p>
-                  </div>
-                </div>
-              </div>
-            </MotionDiv>
-          </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Right — bio text */}
+          <motion.div
+            initial={{ opacity: 0, x: 32 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="space-y-8"
+          >
+            <div>
+              <h3
+                style={{ fontFamily: "var(--font-display)" }}
+                className="text-3xl md:text-4xl font-light text-[var(--color-gold)] italic mb-8"
+              >
+                Welcome to Nubian Luxe Braiding Lounge
+              </h3>
+
+              {paragraphs.map((p, i) => (
+                <motion.p
+                  key={i}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: i * 0.1 }}
+                  style={{ fontFamily: "var(--font-body)" }}
+                  className="text-white/70 leading-[1.9] mb-6 text-[0.95rem]"
+                >
+                  {p}
+                </motion.p>
+              ))}
+
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                style={{ fontFamily: "var(--font-body)" }}
+                className="text-white/70 leading-[1.9] mb-6 text-[0.95rem]"
+              >
+                As a wife, mother of four adult children, and grandmother of two, I understand
+                the importance of self-care and the need to pour into ourselves. At NLBL, I
+                hope to provide a space where you feel rejuvenated, empowered, and ready to
+                take on the world — despite whatever life throws your way.
+              </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                style={{ fontFamily: "var(--font-body)" }}
+                className="text-white/70 leading-[1.9] mb-10 text-[0.95rem]"
+              >
+                With 24/7 booking options, I strive to accommodate your schedule and lifestyle,
+                ensuring flexibility without compromising the quality of care.
+              </motion.p>
+
+              {/* Signature quote */}
+              <motion.blockquote
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="border-l-2 border-[var(--color-gold)] pl-6 mb-10"
+              >
+                <p
+                  style={{ fontFamily: "var(--font-display)" }}
+                  className="text-2xl md:text-3xl font-light italic text-[var(--color-gold-light)]"
+                >
+                  &ldquo;Let&apos;s honor our roots and redefine the braiding experience together.&rdquo;
+                </p>
+                <footer className="mt-3 text-xs tracking-[0.2em] uppercase text-white/40">
+                  — Taliah Mason
+                </footer>
+              </motion.blockquote>
+
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+              >
+                <Link href="/#booking" className="btn-gold group inline-flex">
+                  Book With Taliah
+                  <ArrowUpRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                </Link>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       </div>
+
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
     </section>
-  )
-} 
+  );
+}
