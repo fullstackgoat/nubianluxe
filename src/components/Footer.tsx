@@ -257,6 +257,9 @@ export default function Footer() {
             <Link href="/terms" className="text-white/30 text-xs hover:text-white/60 transition-colors duration-300 tracking-[0.08em]">
               Terms of Service
             </Link>
+            <Link href="/refund-policy" className="text-white/30 text-xs hover:text-white/60 transition-colors duration-300 tracking-[0.08em]">
+              Refund Policy
+            </Link>
           </div>
         </div>
       </div>
