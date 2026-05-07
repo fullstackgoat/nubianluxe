@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, MapPin, Clock, ArrowUpRight } from "lucide-react";
+import { Phone, MapPin, Clock, ArrowUpRight, User } from "lucide-react";
 
 const paragraphs = [
   "At NLBL, I've created a home-based, professional, and comfortable space where the artistry of braiding meets old-school hair care values and modern luxury accommodations. My goal is to provide exceptional service, expert hair care, and an uplifting environment where both clients and stylists can take pride in the experience.",
@@ -13,6 +14,11 @@ const paragraphs = [
 ];
 
 export default function AboutMe() {
+  // Falls back to a styled placeholder if the portrait file is missing or
+  // can't be optimized (currently public/stylist-portrait.jpg is empty —
+  // upload a real photo to replace).
+  const [portraitFailed, setPortraitFailed] = useState(false);
+
   return (
     <section id="about" className="relative py-28 bg-[var(--color-obsidian)]">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
@@ -55,18 +61,36 @@ export default function AboutMe() {
               <div className="absolute -inset-6 rounded-3xl border border-[rgba(201,168,76,0.08)]" />
 
               <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
-                <Image
-                  src="/stylist-portrait.jpg"
-                  alt="Taliah Mason, Owner & Stylist at Nubian Luxe"
-                  fill
-                  className="object-cover"
-                  priority
-                />
+                {portraitFailed ? (
+                  // Stylized placeholder when the portrait isn't uploaded yet.
+                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-obsidian-soft)] via-[var(--color-obsidian-muted)] to-[var(--color-obsidian)] flex flex-col items-center justify-center">
+                    <div className="w-20 h-20 rounded-full border-2 border-[rgba(201,168,76,0.25)] flex items-center justify-center mb-4">
+                      <User className="w-8 h-8 text-[var(--color-gold-dark)]" />
+                    </div>
+                    <span
+                      style={{ fontFamily: "var(--font-display)" }}
+                      className="text-3xl text-[var(--color-gold-light)] italic font-light"
+                    >
+                      TM
+                    </span>
+                  </div>
+                ) : (
+                  <Image
+                    src="/stylist-portrait.jpg"
+                    alt="Taliah Mason, Owner & Stylist at Nubian Luxe"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 384px"
+                    className="object-cover"
+                    priority
+                    onError={() => setPortraitFailed(true)}
+                  />
+                )}
                 {/* Gold frame overlay */}
                 <Image
                   src="/assets/gold-frame.png"
                   alt=""
                   fill
+                  sizes="(max-width: 1024px) 100vw, 384px"
                   className="object-contain z-10 pointer-events-none"
                 />
                 {/* Name badge */}
