@@ -4,6 +4,14 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { parseDateInput } from "@/lib/dates";
+import { getServiceDuration } from "@/lib/service-durations";
+import {
+  archiveStripePrice,
+  createStripeCatalogEntry,
+  createStripePriceForProduct,
+  updateStripeProductDetails,
+  validateCatalogPrice,
+} from "@/lib/stripe-catalog";
 
 // Mirrors the OR-check in src/app/admin/page.tsx so the page guard and the
 // action guard agree. A user is admin if their Clerk userId matches
@@ -128,9 +136,21 @@ export async function updateAccommodation(
 
 export async function updatePriceListService(
   id: string,
-  data: { title: string; description: string; bulletPoints: string[] }
+  data: {
+    title: string;
+    description: string;
+    bulletPoints: string[];
+    price?: string;
+    duration?: number;
+  }
 ) {
   await assertAdmin();
+
+  const existing = await prisma.priceListService.findUnique({
+    where: { id },
+    include: { category: true },
+  });
+  if (!existing) throw new Error("Service not found");
 
   const title = data.title.trim();
   const description = data.description.trim();
@@ -140,11 +160,133 @@ export async function updatePriceListService(
     .map((point) => point.trim())
     .filter(Boolean);
 
+  const nextPrice = data.price?.trim() ?? existing.price;
+  if (data.price !== undefined) {
+    validateCatalogPrice(nextPrice);
+  }
+
+  const nextDuration =
+    data.duration !== undefined && data.duration > 0
+      ? data.duration
+      : existing.duration;
+
+  let stripePriceId = existing.stripePriceId;
+
+  if (nextPrice !== existing.price && existing.stripeProductId) {
+    stripePriceId = await createStripePriceForProduct(existing.stripeProductId, {
+      serviceId: id,
+      price: nextPrice,
+    });
+    if (existing.stripePriceId) {
+      await archiveStripePrice(existing.stripePriceId);
+    }
+  }
+
+  if (existing.stripeProductId) {
+    await updateStripeProductDetails(existing.stripeProductId, {
+      name: `${existing.category.title} — ${title}`,
+      description,
+      catalogPrice: nextPrice,
+      title,
+    });
+  }
+
   await prisma.priceListService.update({
     where: { id },
-    data: { title, description, bulletPoints },
+    data: {
+      title,
+      description,
+      bulletPoints,
+      price: nextPrice,
+      duration: nextDuration,
+      ...(stripePriceId !== existing.stripePriceId && { stripePriceId }),
+    },
   });
 
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/book");
+}
+
+export async function createPriceListService(
+  categoryId: string,
+  data: {
+    title: string;
+    price: string;
+    description: string;
+    bulletPoints: string[];
+    duration?: number;
+  }
+) {
+  await assertAdmin();
+
+  const title = data.title.trim();
+  const price = data.price.trim();
+  const description = data.description.trim();
+  if (!title) throw new Error("Title is required");
+  if (!price) throw new Error("Price is required");
+  validateCatalogPrice(price);
+
+  const category = await prisma.serviceCategory.findUnique({
+    where: { id: categoryId },
+  });
+  if (!category) throw new Error("Category not found");
+
+  const maxSort = await prisma.priceListService.aggregate({
+    where: { categoryId },
+    _max: { sortOrder: true },
+  });
+  const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+  const duration =
+    data.duration && data.duration > 0
+      ? data.duration
+      : getServiceDuration(categoryId, title);
+
+  const bulletPoints = data.bulletPoints
+    .map((point) => point.trim())
+    .filter(Boolean);
+
+  const service = await prisma.priceListService.create({
+    data: {
+      categoryId,
+      title,
+      price,
+      description,
+      bulletPoints,
+      bookingUrl: "",
+      duration,
+      sortOrder,
+    },
+  });
+
+  try {
+    const stripe = await createStripeCatalogEntry({
+      serviceId: service.id,
+      categoryId,
+      categoryTitle: category.title,
+      title,
+      price,
+      description,
+    });
+
+    await prisma.priceListService.update({
+      where: { id: service.id },
+      data: {
+        stripeProductId: stripe.productId,
+        stripePriceId: stripe.priceId,
+        bookingUrl: `/book?serviceId=${service.id}`,
+      },
+    });
+  } catch (err) {
+    await prisma.priceListService.delete({ where: { id: service.id } });
+    throw err instanceof Error
+      ? err
+      : new Error("Failed to create Stripe product for this service.");
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/book");
+
+  return { id: service.id };
 }

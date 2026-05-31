@@ -4,21 +4,166 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
-import { updatePriceListService } from "@/app/actions/admin";
+import { createPriceListService, updatePriceListService } from "@/app/actions/admin";
 
 type EditableService = {
   title: string;
+  price: string;
   description: string;
+  duration: number;
   bulletPoints: string[];
+};
+
+const EMPTY_DRAFT: EditableService = {
+  title: "",
+  price: "",
+  description: "",
+  duration: 180,
+  bulletPoints: [""],
 };
 
 function toEditable(service: PriceListCategoryWithServices["services"][number]): EditableService {
   return {
     title: service.title,
+    price: service.price,
     description: service.description,
+    duration: service.duration,
     bulletPoints:
       service.bulletPoints.length > 0 ? [...service.bulletPoints] : [""],
   };
+}
+
+function ServiceFormFields({
+  draft,
+  onChange,
+}: {
+  draft: EditableService;
+  onChange: (updater: (current: EditableService) => EditableService) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block font-body text-ivory/50 text-xs tracking-widest uppercase mb-2">
+            Service Title
+          </label>
+          <input
+            type="text"
+            value={draft.title}
+            onChange={(e) =>
+              onChange((current) => ({ ...current, title: e.target.value }))
+            }
+            className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40"
+          />
+        </div>
+        <div>
+          <label className="block font-body text-ivory/50 text-xs tracking-widest uppercase mb-2">
+            Price
+          </label>
+          <input
+            type="text"
+            value={draft.price}
+            placeholder="$150+"
+            onChange={(e) =>
+              onChange((current) => ({ ...current, price: e.target.value }))
+            }
+            className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block font-body text-ivory/50 text-xs tracking-widest uppercase mb-2">
+          Duration (minutes)
+        </label>
+        <input
+          type="number"
+          min={15}
+          step={15}
+          value={draft.duration}
+          onChange={(e) =>
+            onChange((current) => ({
+              ...current,
+              duration: Math.max(15, Number(e.target.value) || 180),
+            }))
+          }
+          className="w-full sm:w-40 bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40"
+        />
+      </div>
+
+      <div>
+        <label className="block font-body text-ivory/50 text-xs tracking-widest uppercase mb-2">
+          Description
+        </label>
+        <textarea
+          value={draft.description}
+          rows={3}
+          onChange={(e) =>
+            onChange((current) => ({ ...current, description: e.target.value }))
+          }
+          className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 resize-y min-h-[88px]"
+        />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="font-body text-ivory/50 text-xs tracking-widest uppercase">
+            Bullet Points
+          </label>
+          <button
+            type="button"
+            onClick={() =>
+              onChange((current) => ({
+                ...current,
+                bulletPoints: [...current.bulletPoints, ""],
+              }))
+            }
+            className="inline-flex items-center gap-1 font-body text-xs tracking-widest uppercase text-gold hover:text-[#d4b05a] transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {draft.bulletPoints.map((point, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={point}
+                placeholder="Bullet point text"
+                onChange={(e) =>
+                  onChange((current) => ({
+                    ...current,
+                    bulletPoints: current.bulletPoints.map((existing, i) =>
+                      i === index ? e.target.value : existing
+                    ),
+                  }))
+                }
+                className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onChange((current) => ({
+                    ...current,
+                    bulletPoints:
+                      current.bulletPoints.length === 1
+                        ? [""]
+                        : current.bulletPoints.filter((_, i) => i !== index),
+                  }))
+                }
+                className="shrink-0 w-10 h-10 border border-[rgba(201,168,76,0.15)] text-ivory/50 hover:text-red-400 hover:border-red-500/20 transition-colors flex items-center justify-center"
+                aria-label="Remove bullet point"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PriceListPanel({
@@ -28,6 +173,8 @@ export default function PriceListPanel({
 }) {
   const [activeCategoryId, setActiveCategoryId] = useState(categories[0]?.id ?? "");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createDraft, setCreateDraft] = useState<EditableService>(EMPTY_DRAFT);
   const [drafts, setDrafts] = useState<Record<string, EditableService>>(() => {
     const entries: [string, EditableService][] = [];
     for (const category of categories) {
@@ -38,6 +185,7 @@ export default function PriceListPanel({
     return Object.fromEntries(entries);
   });
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [createdMessage, setCreatedMessage] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -48,16 +196,24 @@ export default function PriceListPanel({
   function updateDraft(id: string, updater: (draft: EditableService) => EditableService) {
     setDrafts((current) => ({
       ...current,
-      [id]: updater(current[id] ?? { title: "", description: "", bulletPoints: [""] }),
+      [id]: updater(current[id] ?? EMPTY_DRAFT),
     }));
     setSavedId(null);
     setError("");
   }
 
+  function validateDraft(draft: EditableService) {
+    if (!draft.title.trim()) return "Each service needs a title before saving.";
+    if (!draft.price.trim()) return "Each service needs a price (e.g. $150+).";
+    if (draft.duration < 15) return "Duration must be at least 15 minutes.";
+    return "";
+  }
+
   function handleSave(id: string) {
     const draft = drafts[id];
-    if (!draft?.title.trim()) {
-      setError("Each service needs a title before saving.");
+    const validationError = validateDraft(draft);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -66,13 +222,46 @@ export default function PriceListPanel({
       try {
         await updatePriceListService(id, {
           title: draft.title,
+          price: draft.price,
           description: draft.description,
+          duration: draft.duration,
           bulletPoints: draft.bulletPoints,
         });
         setSavedId(id);
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save service.");
+      }
+    });
+  }
+
+  function handleCreate() {
+    if (!activeCategory) return;
+
+    const validationError = validateDraft(createDraft);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError("");
+    startTransition(async () => {
+      const title = createDraft.title.trim();
+      try {
+        const result = await createPriceListService(activeCategory.id, {
+          title: createDraft.title,
+          price: createDraft.price,
+          description: createDraft.description,
+          duration: createDraft.duration,
+          bulletPoints: createDraft.bulletPoints,
+        });
+        setCreateDraft(EMPTY_DRAFT);
+        setShowCreateForm(false);
+        setCreatedMessage(`"${title}" added to ${activeCategory.title} and synced to Stripe.`);
+        setExpandedId(result.id);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create service.");
       }
     });
   }
@@ -88,13 +277,19 @@ export default function PriceListPanel({
   return (
     <div className="max-w-4xl">
       <p className="font-body text-ivory/40 text-sm mb-6">
-        Edit each service on the Price List section. Update titles, descriptions, and bullet points,
-        then save — the live site updates immediately.
+        Manage services on the Price List. Add new services with automatic Stripe product creation,
+        or edit titles, prices, descriptions, and bullet points — changes go live immediately.
       </p>
 
       {error && (
         <div className="glass-card px-4 py-3 mb-4 border-red-500/20">
           <p className="text-red-400 font-body text-sm">{error}</p>
+        </div>
+      )}
+
+      {createdMessage && (
+        <div className="glass-card px-4 py-3 mb-4 border-emerald-500/20">
+          <p className="text-emerald-400 font-body text-sm">{createdMessage}</p>
         </div>
       )}
 
@@ -106,6 +301,8 @@ export default function PriceListPanel({
             onClick={() => {
               setActiveCategoryId(category.id);
               setExpandedId(null);
+              setShowCreateForm(false);
+              setCreatedMessage("");
             }}
             className={`font-body text-xs tracking-widest uppercase px-4 py-2 border transition-colors ${
               activeCategory.id === category.id
@@ -116,6 +313,62 @@ export default function PriceListPanel({
             {category.title}
           </button>
         ))}
+      </div>
+
+      <div className="mb-4">
+        {!showCreateForm ? (
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateForm(true);
+              setCreateDraft(EMPTY_DRAFT);
+              setExpandedId(null);
+              setCreatedMessage("");
+              setError("");
+            }}
+            className="inline-flex items-center gap-2 font-body text-xs tracking-widest uppercase text-gold border border-gold/30 px-4 py-2.5 hover:bg-gold/10 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Service to {activeCategory.title}
+          </button>
+        ) : (
+          <div className="glass-card p-5 border-gold/20">
+            <div className="flex items-center justify-between mb-5">
+              <p className="font-body text-ivory text-sm tracking-wide">
+                New service — {activeCategory.title}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="font-body text-ivory/40 text-xs tracking-widest uppercase hover:text-ivory/70"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <ServiceFormFields
+              draft={createDraft}
+              onChange={(updater) => {
+                setCreateDraft((current) => updater(current));
+                setError("");
+              }}
+            />
+
+            <div className="flex items-center gap-4 pt-5 mt-5 border-t border-[rgba(201,168,76,0.1)]">
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={isPending}
+                className="btn-gold text-xs px-6 py-2.5 disabled:opacity-50"
+              >
+                {isPending ? "Creating…" : "Create & Sync to Stripe"}
+              </button>
+              <p className="font-body text-ivory/30 text-xs">
+                Creates a Stripe product + price and adds the service to booking.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -129,14 +382,19 @@ export default function PriceListPanel({
             <div key={service.id} className="glass-card overflow-hidden">
               <button
                 type="button"
-                onClick={() => setExpandedId(isExpanded ? null : service.id)}
+                onClick={() => {
+                  setExpandedId(isExpanded ? null : service.id);
+                  setShowCreateForm(false);
+                }}
                 className="w-full px-5 py-4 flex items-center justify-between gap-4 text-left hover:bg-[rgba(255,255,255,0.02)] transition-colors"
               >
                 <div className="min-w-0">
                   <p className="font-body text-ivory text-sm truncate">{draft.title || service.title}</p>
                   <p className="font-body text-ivory/30 text-xs mt-0.5">
-                    {service.price}
+                    {draft.price || service.price}
+                    {draft.duration ? ` · ${draft.duration} min` : ""}
                     {bulletCount > 0 ? ` · ${bulletCount} bullet${bulletCount === 1 ? "" : "s"}` : ""}
+                    {service.stripeProductId ? " · Stripe linked" : ""}
                   </p>
                 </div>
                 <span className="font-body text-ivory/30 text-xs tracking-widest uppercase shrink-0">
@@ -146,100 +404,13 @@ export default function PriceListPanel({
 
               {isExpanded && (
                 <div className="px-5 pb-5 border-t border-[rgba(201,168,76,0.1)]">
-                  <div className="pt-5 space-y-5">
-                    <div>
-                      <label className="block font-body text-ivory/50 text-xs tracking-widest uppercase mb-2">
-                        Service Title
-                      </label>
-                      <input
-                        type="text"
-                        value={draft.title}
-                        onChange={(e) =>
-                          updateDraft(service.id, (current) => ({
-                            ...current,
-                            title: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40"
-                      />
-                    </div>
+                  <div className="pt-5">
+                    <ServiceFormFields
+                      draft={draft}
+                      onChange={(updater) => updateDraft(service.id, updater)}
+                    />
 
-                    <div>
-                      <label className="block font-body text-ivory/50 text-xs tracking-widest uppercase mb-2">
-                        Description
-                      </label>
-                      <textarea
-                        value={draft.description}
-                        rows={3}
-                        onChange={(e) =>
-                          updateDraft(service.id, (current) => ({
-                            ...current,
-                            description: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 resize-y min-h-[88px]"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="font-body text-ivory/50 text-xs tracking-widest uppercase">
-                          Bullet Points
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateDraft(service.id, (current) => ({
-                              ...current,
-                              bulletPoints: [...current.bulletPoints, ""],
-                            }))
-                          }
-                          className="inline-flex items-center gap-1 font-body text-xs tracking-widest uppercase text-gold hover:text-[#d4b05a] transition-colors"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Add
-                        </button>
-                      </div>
-
-                      <div className="space-y-2">
-                        {draft.bulletPoints.map((point, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={point}
-                              placeholder="Bullet point text"
-                              onChange={(e) =>
-                                updateDraft(service.id, (current) => ({
-                                  ...current,
-                                  bulletPoints: current.bulletPoints.map((existing, i) =>
-                                    i === index ? e.target.value : existing
-                                  ),
-                                }))
-                              }
-                              className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateDraft(service.id, (current) => ({
-                                  ...current,
-                                  bulletPoints:
-                                    current.bulletPoints.length === 1
-                                      ? [""]
-                                      : current.bulletPoints.filter((_, i) => i !== index),
-                                }))
-                              }
-                              className="shrink-0 w-10 h-10 border border-[rgba(201,168,76,0.15)] text-ivory/50 hover:text-red-400 hover:border-red-500/20 transition-colors flex items-center justify-center"
-                              aria-label="Remove bullet point"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 pt-1">
+                    <div className="flex items-center gap-4 pt-5 mt-5 border-t border-[rgba(201,168,76,0.1)]">
                       <button
                         type="button"
                         onClick={() => handleSave(service.id)}
@@ -250,7 +421,7 @@ export default function PriceListPanel({
                       </button>
                       {isSaved && (
                         <p className="font-body text-emerald-400 text-xs tracking-wide">
-                          Saved — homepage updated
+                          Saved — homepage and Stripe updated
                         </p>
                       )}
                     </div>
