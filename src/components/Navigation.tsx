@@ -50,22 +50,22 @@ export default function Navigation() {
             : "bg-transparent py-5"
         }`}
       >
-        <div className="section-container flex items-center justify-between">
+        <div className="section-container flex items-center justify-between gap-3 min-w-0">
           {/* Logo */}
           <Link
             href="/"
-            className="flex flex-col leading-none group"
+            className="flex flex-col leading-none group min-w-0 flex-1 mr-1"
             onClick={closeMenu}
           >
             <span
               style={{ fontFamily: "var(--font-accent)" }}
-              className="text-2xl tracking-[0.08em] text-white group-hover:text-[var(--color-gold)] transition-colors duration-300"
+              className="text-lg sm:text-2xl tracking-[0.05em] sm:tracking-[0.08em] text-white group-hover:text-[var(--color-gold)] transition-colors duration-300 truncate"
             >
               NUBIAN
             </span>
             <span
               style={{ fontFamily: "var(--font-body)" }}
-              className="text-[0.6rem] tracking-[0.35em] uppercase text-[var(--color-gold)] font-light"
+              className="text-[0.5rem] sm:text-[0.6rem] tracking-[0.18em] sm:tracking-[0.35em] uppercase text-[var(--color-gold)] font-light truncate"
             >
               LUXE BRAIDING LOUNGE
             </span>
@@ -86,7 +86,7 @@ export default function Navigation() {
           </nav>
 
           {/* Right side actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {isSignedIn ? (
               <>
                 <Link

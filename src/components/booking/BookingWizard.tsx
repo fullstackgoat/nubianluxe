@@ -229,14 +229,14 @@ export default function BookingWizard({
     HOLD_STEPS.includes(currentStep);
 
   return (
-    <div className="section-container max-w-3xl">
-      <div className="text-center mb-12">
-        <p className="text-[0.65rem] tracking-[0.35em] uppercase text-[var(--color-gold-dark)] mb-3">
+    <div className="section-container max-w-3xl wizard-shell">
+      <div className="text-center mb-8 sm:mb-12">
+        <p className="text-[0.65rem] tracking-[0.25em] sm:tracking-[0.35em] uppercase text-[var(--color-gold-dark)] mb-3">
           Reserve Your Seat
         </p>
         <h1
           style={{ fontFamily: "var(--font-display)" }}
-          className="text-5xl font-light italic text-white mb-4"
+          className="text-3xl sm:text-5xl font-light italic text-white mb-4 px-1"
         >
           Book Your Appointment
         </h1>
@@ -244,12 +244,12 @@ export default function BookingWizard({
       </div>
 
       {currentStep !== "confirmation" && (
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mb-8 sm:mb-10">
+          <div className="flex items-center justify-between gap-1 sm:gap-2 mb-3 px-0.5">
             {progressSteps.map((step, i) => (
-              <div key={step} className="flex flex-col items-center gap-1.5 flex-1">
+              <div key={step} className="flex flex-col items-center gap-1 sm:gap-1.5 flex-1 min-w-0">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border transition-all duration-300 ${
+                  className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[0.65rem] sm:text-xs font-semibold border transition-all duration-300 shrink-0 ${
                     i < progressIndex
                       ? "bg-[var(--color-gold)] border-[var(--color-gold)] text-[var(--color-obsidian)]"
                       : i === progressIndex

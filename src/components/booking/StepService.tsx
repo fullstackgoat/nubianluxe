@@ -47,23 +47,23 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
         <h2
           style={{ fontFamily: "var(--font-display)" }}
-          className="text-3xl font-light text-white italic mb-1"
+          className="wizard-step-title font-light text-white italic mb-1"
         >
           Choose Your Service
         </h2>
         <p className="text-white/40 text-sm">Select the style you want at your appointment.</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {catalog.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setOpenCategoryId(cat.id)}
-            className={`px-3 py-2.5 rounded-lg text-xs tracking-[0.12em] uppercase font-medium border transition-all duration-300 text-left ${
+            className={`px-3 py-2.5 rounded-lg text-[0.65rem] sm:text-xs tracking-[0.1em] sm:tracking-[0.12em] uppercase font-medium border transition-all duration-300 text-left break-words ${
               openCategoryId === cat.id
                 ? "bg-[var(--color-gold)] border-[var(--color-gold)] text-[var(--color-obsidian)]"
                 : "border-white/10 text-white/50 hover:border-white/30 hover:text-white/80"
@@ -81,7 +81,7 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
             <button
               key={item.id}
               onClick={() => select(selectedCategory, item)}
-              className={`text-left p-5 rounded-xl border transition-all duration-300 ${
+              className={`text-left p-4 sm:p-5 rounded-xl border transition-all duration-300 w-full min-w-0 ${
                 isSelected
                   ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
                   : "border-white/10 hover:border-white/25 bg-[rgba(255,255,255,0.02)]"
@@ -90,7 +90,7 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
               <div className="flex items-start justify-between gap-3 mb-2">
                 <span
                   style={{ fontFamily: "var(--font-display)" }}
-                  className={`text-xl font-light transition-colors duration-300 ${
+                  className={`text-lg sm:text-xl font-light transition-colors duration-300 break-words min-w-0 ${
                     isSelected ? "text-[var(--color-gold-light)]" : "text-white"
                   }`}
                 >
@@ -119,7 +119,7 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
       <button
         onClick={onNext}
         disabled={!canProceed}
-        className={`w-full btn-gold py-4 text-sm ${!canProceed ? "opacity-40 cursor-not-allowed" : ""}`}
+        className={`w-full btn-gold py-3.5 sm:py-4 text-xs sm:text-sm ${!canProceed ? "opacity-40 cursor-not-allowed" : ""}`}
       >
         {continueLabel}
       </button>

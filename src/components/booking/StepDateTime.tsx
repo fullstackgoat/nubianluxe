@@ -5,7 +5,8 @@ import { getAvailableSlots } from "@/lib/booking-data";
 import { getBookedSlots, reserveSlotHold, releaseSlotHold } from "@/app/actions/booking";
 import { toLocalDateKey } from "@/lib/dates";
 import type { BookingState } from "./BookingWizard";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import WizardStepNav from "./WizardStepNav";
 import {
   format,
   addMonths,
@@ -130,11 +131,11 @@ export default function StepDateTime({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
         <h2
           style={{ fontFamily: "var(--font-display)" }}
-          className="text-3xl font-light text-white italic mb-1"
+          className="wizard-step-title font-light text-white italic mb-1"
         >
           Pick Your Date & Time
         </h2>
@@ -150,7 +151,7 @@ export default function StepDateTime({
         </p>
       </div>
 
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6 min-w-0">
         <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => setViewMonth((m) => subMonths(m, 1))}
@@ -247,18 +248,12 @@ export default function StepDateTime({
         </p>
       )}
 
-      <div className="flex gap-3">
-        <button onClick={onBack} className="btn-outline flex items-center gap-2 px-5">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!canProceed}
-          className={`btn-gold flex-1 py-4 text-sm ${!canProceed ? "opacity-40 cursor-not-allowed" : ""}`}
-        >
-          Continue — Your Information
-        </button>
-      </div>
+      <WizardStepNav
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel="Continue — Your Information"
+        nextDisabled={!canProceed}
+      />
     </div>
   );
 }

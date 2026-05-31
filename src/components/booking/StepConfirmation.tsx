@@ -34,7 +34,7 @@ export default function StepConfirmation({ state }: Props) {
       >
         <h2
           style={{ fontFamily: "var(--font-display)" }}
-          className="text-4xl font-light italic text-white mb-3"
+          className="text-3xl sm:text-4xl font-light italic text-white mb-3 px-1"
         >
           You&apos;re Confirmed!
         </h2>
@@ -49,7 +49,7 @@ export default function StepConfirmation({ state }: Props) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, duration: 0.6 }}
-        className="glass-card p-7 text-left space-y-4 max-w-md mx-auto"
+        className="glass-card p-4 sm:p-7 text-left space-y-4 max-w-md mx-auto w-full min-w-0"
       >
         <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)]">
           Appointment Details
@@ -66,9 +66,9 @@ export default function StepConfirmation({ state }: Props) {
             { icon: Calendar, label: dateObj ? dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : state.date },
             { icon: Clock, label: `${state.timeSlot} · ${state.tier.charAt(0) + state.tier.slice(1).toLowerCase()} Tier` },
           ].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-3 text-white/70 text-sm">
-              <Icon className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
-              <span>{label}</span>
+            <div key={label} className="flex items-start gap-3 text-white/70 text-sm min-w-0">
+              <Icon className="w-4 h-4 text-[var(--color-gold)] shrink-0 mt-0.5" />
+              <span className="break-words min-w-0">{label}</span>
             </div>
           ))}
         </div>
@@ -84,7 +84,7 @@ export default function StepConfirmation({ state }: Props) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.6 }}
-        className="glass-card p-6 text-left max-w-md mx-auto border-l-2 border-[var(--color-gold)]"
+        className="glass-card p-4 sm:p-6 text-left max-w-md mx-auto w-full min-w-0 border-l-2 border-[var(--color-gold)]"
       >
         <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)] mb-3">
           What&apos;s Next
@@ -103,7 +103,7 @@ export default function StepConfirmation({ state }: Props) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.75, duration: 0.5 }}
-        className="flex flex-col sm:flex-row gap-3 justify-center"
+        className="flex flex-col sm:flex-row gap-3 justify-center w-full max-w-md mx-auto"
       >
         <a
           href="sms:3464590146"

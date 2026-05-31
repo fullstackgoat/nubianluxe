@@ -70,6 +70,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
   }
 
   body {
@@ -233,7 +234,46 @@
   .section-container {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    width: 100%;
+    min-width: 0;
+    padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .section-container {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+
+  /* Booking wizard content shell */
+  .wizard-shell {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .wizard-step-title {
+    font-size: clamp(1.75rem, 5vw, 1.875rem);
+    line-height: 1.15;
+  }
+
+  @media (min-width: 640px) {
+    .btn-gold,
+    .btn-outline {
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .btn-gold,
+    .btn-outline {
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+      letter-spacing: 0.1em;
+    }
   }
 
   /* Neon sign effect */

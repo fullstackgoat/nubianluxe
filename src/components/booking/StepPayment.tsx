@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { BookingState } from "./BookingWizard";
-import { ArrowLeft, Lock, CreditCard, Calendar } from "lucide-react";
+import { Lock, CreditCard, Calendar } from "lucide-react";
+import WizardStepNav from "./WizardStepNav";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -176,9 +177,12 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
-        <h2 style={{ fontFamily: "var(--font-display)" }} className="text-3xl font-light text-white italic mb-1">
+        <h2
+          style={{ fontFamily: "var(--font-display)" }}
+          className="wizard-step-title font-light text-white italic mb-1"
+        >
           Payment
         </h2>
         <p className="text-white/40 text-sm">
@@ -216,7 +220,7 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
       </div>
 
       {/* Order summary — adapts to the chosen option */}
-      <div className="glass-card p-5 space-y-2">
+      <div className="glass-card p-4 sm:p-5 space-y-2 min-w-0">
         <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)] mb-3">
           Order Summary
         </p>
@@ -262,7 +266,7 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
           </>
         )}
 
-        <div className="border-t border-white/10 pt-2 flex justify-between text-white font-semibold">
+        <div className="border-t border-white/10 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-white font-semibold">
           <span>Total charged now</span>
           <span className="text-[var(--color-gold)]">${(totalNow / 100).toFixed(2)}</span>
         </div>
@@ -299,18 +303,20 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
         </Elements>
       )}
 
-      <button onClick={handleBack} className="btn-outline flex items-center gap-2 px-5">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
+      <WizardStepNav onBack={handleBack} />
     </div>
   );
 }
 
 function Line({ label, value, subtle = false }: { label: string; value: string; subtle?: boolean }) {
   return (
-    <div className={`flex justify-between text-sm ${subtle ? "text-white/40" : "text-white/70"}`}>
-      <span>{label}</span>
-      <span>{value}</span>
+    <div
+      className={`flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between text-sm min-w-0 ${
+        subtle ? "text-white/40" : "text-white/70"
+      }`}
+    >
+      <span className="min-w-0 break-words">{label}</span>
+      <span className="shrink-0 sm:text-right">{value}</span>
     </div>
   );
 }
@@ -340,7 +346,7 @@ function PayChoiceCard({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`text-left p-5 rounded-xl border transition-all duration-300 ${
+      className={`text-left p-4 sm:p-5 rounded-xl border transition-all duration-300 w-full min-w-0 ${
         disabled
           ? "border-white/5 bg-[rgba(255,255,255,0.01)] opacity-40 cursor-not-allowed"
           : selected

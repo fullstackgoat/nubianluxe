@@ -22,7 +22,7 @@ export default async function BookPage() {
   return (
     <>
       <Navigation />
-      <main className="min-h-screen bg-[var(--color-obsidian)] pt-24 pb-20">
+      <main className="min-h-screen bg-[var(--color-obsidian)] pt-20 sm:pt-24 pb-12 sm:pb-20 overflow-x-hidden">
         <Suspense
           fallback={
             <div className="flex items-center justify-center min-h-[60vh]">

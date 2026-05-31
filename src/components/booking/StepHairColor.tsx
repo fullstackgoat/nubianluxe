@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, ExternalLink, Palette } from "lucide-react";
+import { ExternalLink, Palette } from "lucide-react";
+import WizardStepNav from "./WizardStepNav";
 import {
   HAIR_COLOR_CATEGORIES,
   getHairColorCategory,
@@ -69,11 +70,11 @@ export default function StepHairColor({ state, update, onNext, onBack }: Props) 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
         <h2
           style={{ fontFamily: "var(--font-display)" }}
-          className="text-3xl font-light text-white italic mb-1"
+          className="wizard-step-title font-light text-white italic mb-1"
         >
           Select Your Hair Color
         </h2>
@@ -102,7 +103,7 @@ export default function StepHairColor({ state, update, onNext, onBack }: Props) 
         ))}
       </div>
 
-      <div className="glass-card p-5 space-y-4">
+      <div className="glass-card p-4 sm:p-5 space-y-4 min-w-0">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[0.65rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)] mb-1">
@@ -156,24 +157,23 @@ export default function StepHairColor({ state, update, onNext, onBack }: Props) 
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button onClick={onBack} className="btn-outline flex items-center gap-2 px-5">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-
+      <div className="space-y-3">
         {requirement === "optional" && (
-          <button onClick={handleSkipOptional} className="btn-outline flex-1 py-4 text-sm">
+          <button
+            type="button"
+            onClick={handleSkipOptional}
+            className="btn-outline w-full py-3.5 text-xs sm:text-sm"
+          >
             No Braiding Hair Needed
           </button>
         )}
 
-        <button
-          onClick={handleContinue}
-          disabled={!canProceed}
-          className={`btn-gold flex-1 py-4 text-sm ${!canProceed ? "opacity-40 cursor-not-allowed" : ""}`}
-        >
-          Continue — Choose Booking Tier
-        </button>
+        <WizardStepNav
+          onBack={onBack}
+          onNext={handleContinue}
+          nextLabel="Continue — Choose Booking Tier"
+          nextDisabled={!canProceed}
+        />
       </div>
     </div>
   );

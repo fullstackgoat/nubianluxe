@@ -1,7 +1,7 @@
 "use client";
 
 import type { BookingState } from "./BookingWizard";
-import { ArrowLeft } from "lucide-react";
+import WizardStepNav from "./WizardStepNav";
 import { extendSlotHold } from "@/app/actions/booking";
 
 interface Props {
@@ -50,31 +50,44 @@ export default function StepClientInfo({ state, update, onNext, onBack }: Props)
         placeholder={placeholder}
         value={state[key] as string}
         onChange={(e) => update({ [key]: e.target.value } as Partial<BookingState>)}
-        className="w-full bg-[rgba(255,255,255,0.04)] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-[var(--color-gold)] transition-colors duration-200"
+        className="w-full min-w-0 bg-[rgba(255,255,255,0.04)] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-[var(--color-gold)] transition-colors duration-200"
       />
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div>
-        <h2 style={{ fontFamily: "var(--font-display)" }} className="text-3xl font-light text-white italic mb-1">
+        <h2
+          style={{ fontFamily: "var(--font-display)" }}
+          className="wizard-step-title font-light text-white italic mb-1"
+        >
           Your Information
         </h2>
-        <p className="text-white/40 text-sm">We&apos;ll use this to confirm your appointment and send reminders.</p>
+        <p className="text-white/40 text-sm">
+          We&apos;ll use this to confirm your appointment and send reminders.
+        </p>
       </div>
 
-      {/* Booking summary */}
-      <div className="glass-card p-5 grid grid-cols-2 gap-3 text-sm">
+      <div className="glass-card p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm min-w-0">
         {[
-          { label: "Service",   value: state.service },
-          { label: "Tier",      value: state.tier.charAt(0) + state.tier.slice(1).toLowerCase() },
-          { label: "Date",      value: state.date ? new Date(state.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric" }) : "" },
-          { label: "Time",      value: state.timeSlot },
+          { label: "Service", value: state.service },
+          { label: "Tier", value: state.tier.charAt(0) + state.tier.slice(1).toLowerCase() },
+          {
+            label: "Date",
+            value: state.date
+              ? new Date(state.date + "T12:00:00").toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "",
+          },
+          { label: "Time", value: state.timeSlot },
         ].map(({ label, value }) => (
-          <div key={label}>
+          <div key={label} className="min-w-0">
             <p className="text-[0.6rem] tracking-[0.2em] uppercase text-white/30">{label}</p>
-            <p className="text-white mt-0.5">{value}</p>
+            <p className="text-white mt-0.5 break-words">{value}</p>
           </div>
         ))}
       </div>
@@ -92,23 +105,17 @@ export default function StepClientInfo({ state, update, onNext, onBack }: Props)
             value={state.notes}
             onChange={(e) => update({ notes: e.target.value })}
             rows={3}
-            className="w-full bg-[rgba(255,255,255,0.04)] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-[var(--color-gold)] transition-colors duration-200 resize-none"
+            className="w-full min-w-0 bg-[rgba(255,255,255,0.04)] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-[var(--color-gold)] transition-colors duration-200 resize-none"
           />
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <button onClick={onBack} className="btn-outline flex items-center gap-2 px-5">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={!isValid}
-          className={`btn-gold flex-1 py-4 text-sm ${!isValid ? "opacity-40 cursor-not-allowed" : ""}`}
-        >
-          Continue — Choose Payment
-        </button>
-      </div>
+      <WizardStepNav
+        onBack={onBack}
+        onNext={handleSubmit}
+        nextLabel="Continue — Choose Payment"
+        nextDisabled={!isValid}
+      />
     </div>
   );
 }
