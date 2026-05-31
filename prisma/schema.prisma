@@ -36,6 +36,9 @@ model Appointment {
   duration              Int
   status                AppointmentStatus @default(PENDING)
   notes                 String?
+  hairColorCategory     String?
+  hairColorValue        String?
+  bookingSessionId      String?
   referencePhotoUrl     String?
   stripePaymentIntentId String?
   depositPaid           Boolean           @default(false)
@@ -51,6 +54,56 @@ model BlockedDate {
   date      DateTime @db.Date
   reason    String?
   createdAt DateTime @default(now())
+}
+
+model SlotHold {
+  id        String   @id @default(cuid())
+  sessionId String
+  date      DateTime @db.Date
+  timeSlot  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([date, timeSlot])
+  @@index([sessionId])
+  @@index([expiresAt])
+}
+
+model Accommodation {
+  id           String   @id @default(cuid())
+  title        String
+  icon         String
+  bulletPoints String[] @default([])
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ServiceCategory {
+  id        String            @id
+  title     String
+  accent    String
+  sortOrder Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  services  PriceListService[]
+}
+
+model PriceListService {
+  id               String          @id @default(cuid())
+  categoryId       String
+  category         ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title            String
+  price            String
+  description      String
+  bulletPoints     String[]        @default([])
+  bookingUrl       String
+  duration         Int             @default(180)
+  stripeProductId  String?
+  stripePriceId    String?
+  sortOrder        Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 }
 
 enum BookingTier {

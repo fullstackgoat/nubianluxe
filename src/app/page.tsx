@@ -1,3 +1,5 @@
+import { getAccommodations } from "@/lib/accommodations";
+import { getPriceListCategories } from "@/lib/price-list";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import StatsStrip from "@/components/StatsStrip";
@@ -9,14 +11,19 @@ import BraidingHairColorChart from "@/components/BraidingHairColorChart";
 import PriceList from "@/components/PriceList";
 import Footer from "@/components/Footer";
 
-export default function Home() {
+export default async function Home() {
+  const [accommodations, priceListCategories] = await Promise.all([
+    getAccommodations(),
+    getPriceListCategories(),
+  ]);
+
   return (
     <main className="min-h-screen">
       <Navigation />
       <HeroSection />
       <StatsStrip />
       <section id="services">
-        <SignatureAccommodations />
+        <SignatureAccommodations accommodations={accommodations} />
       </section>
       <section id="booking">
         <WaysToBook />
@@ -31,7 +38,7 @@ export default function Home() {
         <BraidingHairColorChart />
       </section>
       <section id="prices">
-        <PriceList />
+        <PriceList categories={priceListCategories} />
       </section>
       <Footer />
     </main>

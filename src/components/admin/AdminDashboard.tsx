@@ -6,17 +6,29 @@ import { format, isToday, isFuture } from "date-fns";
 import type { Appointment, BlockedDate } from "@/generated/prisma/client";
 import AppointmentsPanel from "./AppointmentsPanel";
 import BlockedDatesPanel from "./BlockedDatesPanel";
+import AccommodationsPanel from "./AccommodationsPanel";
+import PriceListPanel from "./PriceListPanel";
+import type { Accommodation } from "@/generated/prisma/client";
+import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
 
 interface Props {
   appointments: Appointment[];
   blockedDates: BlockedDate[];
+  accommodations: Accommodation[];
+  priceListCategories: PriceListCategoryWithServices[];
   dbError?: string | null;
 }
 
-const TABS = ["Overview", "Appointments", "Blocked Dates"] as const;
+const TABS = ["Overview", "Appointments", "Blocked Dates", "Accommodations", "Price List"] as const;
 type Tab = (typeof TABS)[number];
 
-export default function AdminDashboard({ appointments, blockedDates, dbError }: Props) {
+export default function AdminDashboard({
+  appointments,
+  blockedDates,
+  accommodations,
+  priceListCategories,
+  dbError,
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
 
   const now = new Date();
@@ -222,6 +234,28 @@ export default function AdminDashboard({ appointments, blockedDates, dbError }: 
             transition={{ duration: 0.4 }}
           >
             <BlockedDatesPanel blockedDates={blockedDates} />
+          </motion.div>
+        )}
+
+        {/* Accommodations tab */}
+        {activeTab === "Accommodations" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <AccommodationsPanel accommodations={accommodations} />
+          </motion.div>
+        )}
+
+        {/* Price List tab */}
+        {activeTab === "Price List" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <PriceListPanel categories={priceListCategories} />
           </motion.div>
         )}
       </div>

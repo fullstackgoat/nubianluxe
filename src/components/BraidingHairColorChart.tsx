@@ -1,71 +1,18 @@
-'use client'
+"use client";
 
 import { useState } from 'react'
 import { MotionDiv } from './motion/MotionDiv'
 import Image from 'next/image'
 import { Palette } from 'lucide-react'
-
-interface StandardCategory {
-  id: 'standard'
-  name: string
-  description: string
-  images: string[]
-}
-
-interface OtherCategory {
-  id: string
-  name: string
-  description: string
-  image: string
-}
-
-type ColorCategory = StandardCategory | OtherCategory
-
-// Color chart categories
-const colorCategories: ColorCategory[] = [
-  {
-    id: 'standard',
-    name: 'EX BRAID PROFESSIONAL | BOX PROFESSIONAL',
-    description: 'Our standard professional-grade braiding hair colors',
-    images: [
-      '/assets/1.png',
-      '/assets/2.png',
-      '/assets/3.png',
-      '/assets/4.png'
-    ]
-  },
-  {
-    id: 'platinum',
-    name: 'EX BRAID PLATINUM 2 TONE COLLECTION',
-    description: 'Premium two-tone ombré effect braiding hair',
-    image: '/assets/exbraids2platinum.png'
-  },
-  {
-    id: 'rainbow',
-    name: 'EX BRAID RAINBOW 3 TONE COLLECTION',
-    description: 'Vibrant three-tone gradient braiding hair options',
-    image: '/assets/exbraidrainbow.png'
-  },
-  {
-    id: 'kinky',
-    name: 'EX BRAID KINKY AFRO & BOUNCY TWIST',
-    description: 'Textured styles for natural-looking braids and twists',
-    image: '/assets/kinky.png'
-  }
-]
+import { HAIR_COLOR_CATEGORIES } from '@/lib/hair-colors'
 
 export default function BraidingHairColorChart() {
-  const [selectedCategory, setSelectedCategory] = useState<string>(colorCategories[0].id)
+  const [selectedCategory, setSelectedCategory] = useState<string>(HAIR_COLOR_CATEGORIES[0].id)
 
-  const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategory(categoryId)
-  }
-
-  const selectedCategoryData = colorCategories.find(cat => cat.id === selectedCategory)
+  const selectedCategoryData = HAIR_COLOR_CATEGORIES.find(cat => cat.id === selectedCategory)
 
   return (
     <section className="relative py-20 px-4">
-      {/* Light Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#FDF5E6]/80 to-white" />
       
       <div className="relative max-w-7xl mx-auto">
@@ -89,9 +36,8 @@ export default function BraidingHairColorChart() {
           </p>
         </MotionDiv>
         
-        {/* Category Tabs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10 w-full px-1 max-w-4xl mx-auto">
-          {colorCategories.map(category => (
+          {HAIR_COLOR_CATEGORIES.map(category => (
             <MotionDiv
               key={category.id}
               initial={{ opacity: 0, y: 10 }}
@@ -101,7 +47,7 @@ export default function BraidingHairColorChart() {
               className="w-full"
             >
               <button
-                onClick={() => handleCategoryClick(category.id)}
+                onClick={() => setSelectedCategory(category.id)}
                 className={`w-full px-2 md:px-4 py-2 md:py-3 rounded-full text-xs md:text-sm font-semibold transition-all duration-300 ${
                   selectedCategory === category.id
                     ? 'bg-primary text-white shadow-lg scale-105'
@@ -114,7 +60,6 @@ export default function BraidingHairColorChart() {
           ))}
         </div>
         
-        {/* Color Chart Display */}
         {selectedCategoryData && (
           <MotionDiv
             className="bg-white rounded-xl p-6 shadow-xl border border-gray-100"
@@ -127,39 +72,25 @@ export default function BraidingHairColorChart() {
               <p className="text-gray-600">{selectedCategoryData.description}</p>
             </div>
             
-            <div className="relative">
-              {selectedCategoryData?.id === 'standard' && 'images' in selectedCategoryData ? (
-                <div className="flex flex-col space-y-8">
-                  {selectedCategoryData.images.map((image, index) => (
-                    <div key={index} className="relative w-full flex justify-center items-center" style={{ minHeight: '1px' }}>
-                      <Image
-                        src={image}
-                        alt={`${selectedCategoryData.name} Color Chart ${index + 1}`}
-                        width={1200}
-                        height={900}
-                        style={{ width: '100%', height: 'auto', maxHeight: '700px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
-                        className="rounded-lg max-w-full"
-                        priority
-                        sizes="100vw"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="relative h-[500px] w-full">
+            <div className="relative space-y-8">
+              {selectedCategoryData.images.map((image, index) => (
+                <div key={index} className="relative w-full flex justify-center items-center">
                   <Image
-                    src={'image' in selectedCategoryData! ? selectedCategoryData.image : ''}
-                    alt={`${selectedCategoryData?.name} Color Chart`}
-                    fill
-                    className="object-contain rounded-lg"
-                    priority
+                    src={image}
+                    alt={`${selectedCategoryData.name} Color Chart ${index + 1}`}
+                    width={1200}
+                    height={900}
+                    style={{ width: '100%', height: 'auto', maxHeight: '700px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                    className="rounded-lg max-w-full"
+                    priority={index === 0}
+                    sizes="100vw"
                   />
                 </div>
-              )}
+              ))}
             </div>
           </MotionDiv>
         )}
       </div>
     </section>
   )
-} 
+}

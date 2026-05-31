@@ -3,6 +3,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { parseDateInput } from "@/lib/dates";
 
 // Mirrors the OR-check in src/app/admin/page.tsx so the page guard and the
 // action guard agree. A user is admin if their Clerk userId matches
@@ -45,6 +46,12 @@ export async function cancelAppointment(id: string) {
   revalidatePath("/admin");
 }
 
+export async function deleteAppointment(id: string) {
+  await assertAdmin();
+  await prisma.appointment.delete({ where: { id } });
+  revalidatePath("/admin");
+}
+
 export async function completeAppointment(id: string) {
   await assertAdmin();
   await prisma.appointment.update({
@@ -84,13 +91,60 @@ export async function unmarkServicePaid(id: string) {
 export async function addBlockedDate(date: string, reason?: string) {
   await assertAdmin();
   await prisma.blockedDate.create({
-    data: { date: new Date(date), reason },
+    data: { date: parseDateInput(date), reason },
   });
   revalidatePath("/admin");
+  revalidatePath("/book");
 }
 
 export async function removeBlockedDate(id: string) {
   await assertAdmin();
   await prisma.blockedDate.delete({ where: { id } });
+  revalidatePath("/admin");
+  revalidatePath("/book");
+}
+
+export async function updateAccommodation(
+  id: string,
+  data: { title: string; bulletPoints: string[] }
+) {
+  await assertAdmin();
+
+  const title = data.title.trim();
+  if (!title) throw new Error("Title is required");
+
+  const bulletPoints = data.bulletPoints
+    .map((point) => point.trim())
+    .filter(Boolean);
+
+  await prisma.accommodation.update({
+    where: { id },
+    data: { title, bulletPoints },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function updatePriceListService(
+  id: string,
+  data: { title: string; description: string; bulletPoints: string[] }
+) {
+  await assertAdmin();
+
+  const title = data.title.trim();
+  const description = data.description.trim();
+  if (!title) throw new Error("Title is required");
+
+  const bulletPoints = data.bulletPoints
+    .map((point) => point.trim())
+    .filter(Boolean);
+
+  await prisma.priceListService.update({
+    where: { id },
+    data: { title, description, bulletPoints },
+  });
+
+  revalidatePath("/");
   revalidatePath("/admin");
 }

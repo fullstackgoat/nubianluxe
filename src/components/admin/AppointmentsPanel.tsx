@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import type { Appointment } from "@/generated/prisma/client";
 import { StatusBadge } from "./AdminDashboard";
+import { formatHairColorSelection } from "@/lib/hair-colors";
 import {
   confirmAppointment,
   cancelAppointment,
+  deleteAppointment,
   completeAppointment,
   markNoShow,
   markServicePaid,
@@ -92,10 +94,16 @@ function AppointmentRow({
   onToggle: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const apptDate = new Date(appt.date);
 
   function action(fn: (id: string) => Promise<void>) {
     startTransition(async () => { await fn(appt.id); });
+  }
+
+  function handleDeleteConfirm() {
+    setShowDeleteConfirm(false);
+    action(deleteAppointment);
   }
 
   return (
@@ -157,6 +165,13 @@ function AppointmentRow({
             <Field label="Service Paid" value={appt.servicePaid ? "Yes" : "No"} />
             <Field label="Deposit Paid" value={appt.depositPaid ? "Yes" : "No"} />
             <Field label="Tier Fee Paid" value={appt.tierFeePaid ? "Yes" : "No"} />
+            {appt.hairColorCategory && appt.hairColorValue && (
+              <Field
+                label="Hair Color"
+                value={formatHairColorSelection(appt.hairColorCategory, appt.hairColorValue)}
+                className="col-span-2"
+              />
+            )}
             {appt.notes && <Field label="Notes" value={appt.notes} className="col-span-2 md:col-span-4" />}
             {appt.stripePaymentIntentId && (
               <Field label="Stripe PI" value={appt.stripePaymentIntentId} className="col-span-2" mono />
@@ -202,7 +217,21 @@ function AppointmentRow({
                 Unmark Service Paid
               </ActionBtn>
             )}
+
+            <ActionBtn color="red" onClick={() => setShowDeleteConfirm(true)}>
+              Delete
+            </ActionBtn>
           </div>
+
+          {showDeleteConfirm && (
+            <DeleteConfirmDialog
+              clientName={appt.clientName}
+              service={appt.service}
+              dateLabel={format(apptDate, "MMM d, yyyy")}
+              onCancel={() => setShowDeleteConfirm(false)}
+              onConfirm={handleDeleteConfirm}
+            />
+          )}
         </div>
       )}
     </div>
@@ -250,5 +279,65 @@ function ActionBtn({
     >
       {children}
     </button>
+  );
+}
+
+function DeleteConfirmDialog({
+  clientName,
+  service,
+  dateLabel,
+  onCancel,
+  onConfirm,
+}: {
+  clientName: string;
+  service: string;
+  dateLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close delete confirmation"
+        onClick={onCancel}
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        className="relative glass-card w-full max-w-md p-6 border-red-500/20"
+      >
+        <p
+          id="delete-confirm-title"
+          className="font-display text-2xl text-ivory font-light italic mb-2"
+        >
+          Delete appointment?
+        </p>
+        <p className="font-body text-ivory/60 text-sm leading-relaxed mb-1">
+          Are you sure you want to delete this appointment? This action cannot be undone.
+        </p>
+        <p className="font-body text-ivory/40 text-xs mb-6">
+          {clientName} · {service} · {dateLabel}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="font-body text-xs tracking-widest uppercase border border-[rgba(201,168,76,0.15)] text-ivory/60 hover:text-ivory px-4 py-2 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="font-body text-xs tracking-widest uppercase border border-red-500/30 text-red-400 hover:bg-red-500/10 px-4 py-2 transition-colors"
+          >
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

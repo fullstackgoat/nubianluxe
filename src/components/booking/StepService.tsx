@@ -1,51 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { SERVICES, parseServicePriceCents } from "@/lib/booking-data";
+import { parseServicePriceCents } from "@/lib/booking-data";
+import type { BookingCatalogCategory } from "@/lib/booking-services";
+import { getHairColorRequirement } from "@/lib/hair-colors";
 import type { BookingState } from "./BookingWizard";
-import { ChevronDown } from "lucide-react";
 
 interface Props {
+  catalog: BookingCatalogCategory[];
   state: BookingState;
   update: (patch: Partial<BookingState>) => void;
   onNext: () => void;
 }
 
-export default function StepService({ state, update, onNext }: Props) {
-  const [openCategory, setOpenCategory] = useState<string>(
-    state.serviceCategory || SERVICES[0].category
-  );
+export default function StepService({ catalog, state, update, onNext }: Props) {
+  const initialCategory =
+    catalog.find((cat) => cat.category === state.serviceCategory)?.id ??
+    catalog[0]?.id ??
+    "";
+  const [openCategoryId, setOpenCategoryId] = useState<string>(initialCategory);
 
-  const selectedCategory = SERVICES.find((s) => s.category === openCategory);
-  const canProceed = !!state.service;
+  const selectedCategory = catalog.find((cat) => cat.id === openCategoryId);
+  const canProceed = !!state.serviceId;
+  const hairColorReq = getHairColorRequirement(state.serviceCategoryId);
+  const continueLabel =
+    hairColorReq !== "none" ? "Continue — Select Hair Color" : "Continue — Choose Booking Tier";
 
-  const select = (category: string, name: string, duration: number, price: string) => {
+  const select = (
+    category: BookingCatalogCategory,
+    item: BookingCatalogCategory["items"][number]
+  ) => {
     update({
-      serviceCategory: category,
-      service: name,
-      duration,
-      servicePrice: price,
-      servicePriceCents: parseServicePriceCents(price),
+      serviceId: item.id,
+      serviceCategoryId: category.id,
+      serviceCategory: category.category,
+      service: item.name,
+      duration: item.duration,
+      servicePrice: item.price,
+      servicePriceCents: parseServicePriceCents(item.price),
+      stripeProductId: item.stripeProductId,
+      stripePriceId: item.stripePriceId,
+      hairColorCategory: "",
+      hairColorValue: "",
+      hairColorSkipped: false,
     });
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 style={{ fontFamily: "var(--font-display)" }} className="text-3xl font-light text-white italic mb-1">
+        <h2
+          style={{ fontFamily: "var(--font-display)" }}
+          className="text-3xl font-light text-white italic mb-1"
+        >
           Choose Your Service
         </h2>
         <p className="text-white/40 text-sm">Select the style you want at your appointment.</p>
       </div>
 
-      {/* Category tabs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {SERVICES.map((cat) => (
+        {catalog.map((cat) => (
           <button
-            key={cat.category}
-            onClick={() => setOpenCategory(cat.category)}
+            key={cat.id}
+            onClick={() => setOpenCategoryId(cat.id)}
             className={`px-3 py-2.5 rounded-lg text-xs tracking-[0.12em] uppercase font-medium border transition-all duration-300 text-left ${
-              openCategory === cat.category
+              openCategoryId === cat.id
                 ? "bg-[var(--color-gold)] border-[var(--color-gold)] text-[var(--color-obsidian)]"
                 : "border-white/10 text-white/50 hover:border-white/30 hover:text-white/80"
             }`}
@@ -55,14 +74,13 @@ export default function StepService({ state, update, onNext }: Props) {
         ))}
       </div>
 
-      {/* Services grid */}
       <div className="grid sm:grid-cols-2 gap-3">
         {selectedCategory?.items.map((item) => {
-          const isSelected = state.service === item.name && state.serviceCategory === openCategory;
+          const isSelected = state.serviceId === item.id;
           return (
             <button
-              key={item.name}
-              onClick={() => select(openCategory, item.name, item.duration, item.price)}
+              key={item.id}
+              onClick={() => select(selectedCategory, item)}
               className={`text-left p-5 rounded-xl border transition-all duration-300 ${
                 isSelected
                   ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
@@ -88,7 +106,9 @@ export default function StepService({ state, update, onNext }: Props) {
               {isSelected && (
                 <div className="mt-3 flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-gold)]" />
-                  <span className="text-[var(--color-gold)] text-xs tracking-[0.15em] uppercase">Selected</span>
+                  <span className="text-[var(--color-gold)] text-xs tracking-[0.15em] uppercase">
+                    Selected
+                  </span>
                 </div>
               )}
             </button>
@@ -101,7 +121,7 @@ export default function StepService({ state, update, onNext }: Props) {
         disabled={!canProceed}
         className={`w-full btn-gold py-4 text-sm ${!canProceed ? "opacity-40 cursor-not-allowed" : ""}`}
       >
-        Continue — Choose Booking Tier
+        {continueLabel}
       </button>
     </div>
   );

@@ -20,21 +20,30 @@ export const TIER_FEES: Record<string, number> = {
   VIP: 5000,     // $50.00
 };
 
-// Stripe catalog IDs (LIVE mode, account acct_1TU8d7BMtUlbX58I).
-// Created via the Stripe MCP — see TODO.md for product/price provenance.
-// These are referenced in PaymentIntent metadata so the dashboard can
-// attribute revenue to "Booking Deposit" vs "Premium Tier" vs "VIP Tier".
+// Stripe catalog IDs (LIVE mode, account acct_1TU8d7BMtUlbX58I — Nubian Luxe Braiding Lounge).
+// Deposit + tier fees are fixed products. Each price list service has its own
+// Product + Price in Stripe (see PriceListService.stripeProductId / stripePriceId).
+// Run `npx tsx scripts/sync-stripe-catalog.ts` to create/link service products.
 export const STRIPE_PRODUCT_IDS = {
   DEPOSIT:          "prod_UT66BvdcYxutex",
   PREMIUM_TIER_FEE: "prod_UT66RnjCvazWSv",
   VIP_TIER_FEE:     "prod_UT66rm8DgaWk1K",
 } as const;
 
+// Deposit + tier fee price IDs — set in .env per mode (test vs live).
+// Run `npx tsx scripts/setup-stripe-mode.ts` after switching STRIPE_SECRET_KEY.
 export const STRIPE_PRICE_IDS = {
-  DEPOSIT:          "price_1TU9uGBMtUlbX58IU2RdWvpR", // $100.00 one-time
-  PREMIUM_TIER_FEE: "price_1TU9uGBMtUlbX58InGBSRdNt", // $25.00 one-time
-  VIP_TIER_FEE:     "price_1TU9uHBMtUlbX58IK6Er3OOC", // $50.00 one-time
+  DEPOSIT:
+    process.env.STRIPE_DEPOSIT_PRICE_ID ?? "price_1TU9uGBMtUlbX58IU2RdWvpR",
+  PREMIUM_TIER_FEE:
+    process.env.STRIPE_PREMIUM_TIER_PRICE_ID ?? "price_1TU9uGBMtUlbX58InGBSRdNt",
+  VIP_TIER_FEE:
+    process.env.STRIPE_VIP_TIER_PRICE_ID ?? "price_1TU9uHBMtUlbX58IK6Er3OOC",
 } as const;
+
+export function isStripeTestMode(): boolean {
+  return (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_test_");
+}
 
 export type Tier = "REGULAR" | "PREMIUM" | "VIP";
 

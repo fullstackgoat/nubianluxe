@@ -1,0 +1,50 @@
+import {
+  Calendar,
+  Package,
+  Users,
+  Palette,
+  Droplets,
+  Scissors,
+  Sparkles,
+  Coffee,
+  UtensilsCrossed,
+  Gift,
+  Laptop,
+  Ban,
+  Car,
+  Home,
+  Armchair,
+  Sofa,
+  Tv,
+  Clock,
+  Camera,
+  Star,
+  type LucideIcon,
+} from "lucide-react";
+
+export const ACCOMMODATION_ICON_MAP: Record<string, LucideIcon> = {
+  Calendar,
+  Package,
+  Users,
+  Palette,
+  Droplets,
+  Scissors,
+  Sparkles,
+  Coffee,
+  UtensilsCrossed,
+  Gift,
+  Laptop,
+  Ban,
+  Car,
+  Home,
+  Armchair,
+  Sofa,
+  Tv,
+  Clock,
+  Camera,
+  Star,
+};
+
+export function getAccommodationIcon(icon: string): LucideIcon {
+  return ACCOMMODATION_ICON_MAP[icon] ?? Star;
+}

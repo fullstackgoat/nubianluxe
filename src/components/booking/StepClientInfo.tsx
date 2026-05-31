@@ -2,6 +2,7 @@
 
 import type { BookingState } from "./BookingWizard";
 import { ArrowLeft } from "lucide-react";
+import { extendSlotHold } from "@/app/actions/booking";
 
 interface Props {
   state: BookingState;
@@ -16,12 +17,20 @@ export default function StepClientInfo({ state, update, onNext, onBack }: Props)
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.clientEmail) &&
     state.clientPhone.replace(/\D/g, "").length >= 10;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
-    // Invalidate any previously-created PaymentIntent so Step 5 will re-init
-    // against the latest client info (in case they came back to fix a typo).
     if (state.clientSecret) {
       update({ clientSecret: "", appointmentId: "", totalCharge: 0 });
+    }
+    if (state.bookingSessionId && state.date && state.timeSlot) {
+      const result = await extendSlotHold(
+        state.bookingSessionId,
+        state.date,
+        state.timeSlot
+      );
+      if ("expiresAt" in result && result.expiresAt) {
+        update({ slotHoldExpiresAt: result.expiresAt });
+      }
     }
     onNext();
   };

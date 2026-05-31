@@ -1,43 +1,19 @@
 "use client";
 
 import { motion } from "motion/react";
-import {
-  Calendar, Package, Users, Palette, Droplets, Scissors,
-  Sparkles, Coffee, UtensilsCrossed, Gift, Laptop, Ban,
-  Car, Home, Armchair, Sofa, Tv, Clock, Camera, Star,
-} from "lucide-react";
+import type { Accommodation } from "@/generated/prisma/client";
+import { getAccommodationIcon } from "@/lib/accommodation-icons";
 
-const amenities = [
-  { icon: Calendar,       label: "24-Hour Booking Time Slots" },
-  { icon: Package,        label: "Braiding Hair Included" },
-  { icon: Users,          label: "Human Hair Pickup Available" },
-  { icon: Palette,        label: "Custom Hair Color Blends" },
-  { icon: Droplets,       label: "Shampoo & Nano Steam Conditioning" },
-  { icon: Scissors,       label: "Hair Trims Included" },
-  { icon: Sparkles,       label: "Luxury Hair Care Products" },
-  { icon: Coffee,         label: "Complimentary Snacks & Beverages" },
-  { icon: UtensilsCrossed,label: "Complimentary Meals (Extended Appts)" },
-  { icon: Gift,           label: "At-Home Hair Care Gift Bag" },
-  { icon: Laptop,         label: "Quiet Work Environment" },
-  { icon: Ban,            label: "No Overbooking — Ever" },
-  { icon: Car,            label: "Hassle-Free Parking" },
-  { icon: Home,           label: "In-Home Professional Salon" },
-  { icon: Armchair,       label: "Luxury Salon Chair" },
-  { icon: Sofa,           label: "Comfortable Break Space" },
-  { icon: Tv,             label: "Entertainment at Your Fingertips" },
-  { icon: Clock,          label: "Scheduled Comfort Breaks" },
-  { icon: Camera,         label: "Personalized Follow-Up Care" },
-  { icon: Star,           label: "Referral Program Incentives" },
-];
+interface Props {
+  accommodations: Accommodation[];
+}
 
-export default function SignatureAccommodations() {
+export default function SignatureAccommodations({ accommodations }: Props) {
   return (
     <section id="accommodations" className="relative py-28 bg-[var(--color-ivory)]">
-      {/* Subtle top border accent */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
 
       <div className="section-container">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -67,31 +43,50 @@ export default function SignatureAccommodations() {
           </p>
         </motion.div>
 
-        {/* Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {amenities.map((item, i) => (
-            <motion.div
-              key={item.label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.04 }}
-              className="group flex items-start gap-4 p-5 rounded-xl bg-white border border-[var(--color-ivory-dark)] hover:border-[var(--color-gold-dark)] hover:shadow-md transition-all duration-300"
-            >
-              <div className="shrink-0 w-9 h-9 rounded-full bg-[var(--color-gold-pale)] flex items-center justify-center group-hover:bg-[var(--color-gold)] transition-colors duration-300">
-                <item.icon className="w-4 h-4 text-[var(--color-gold-dark)] group-hover:text-white transition-colors duration-300" />
-              </div>
-              <p
-                style={{ fontFamily: "var(--font-body)" }}
-                className="text-sm text-[var(--color-charcoal)] leading-snug pt-1.5"
+          {accommodations.map((item, i) => {
+            const Icon = getAccommodationIcon(item.icon);
+            const bullets = item.bulletPoints.filter(Boolean);
+
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.04 }}
+                className="group flex items-start gap-4 p-5 rounded-xl bg-white border border-[var(--color-ivory-dark)] hover:border-[var(--color-gold-dark)] hover:shadow-md transition-all duration-300"
               >
-                {item.label}
-              </p>
-            </motion.div>
-          ))}
+                <div className="shrink-0 w-9 h-9 rounded-full bg-[var(--color-gold-pale)] flex items-center justify-center group-hover:bg-[var(--color-gold)] transition-colors duration-300">
+                  <Icon className="w-4 h-4 text-[var(--color-gold-dark)] group-hover:text-white transition-colors duration-300" />
+                </div>
+                <div className="min-w-0 pt-1">
+                  <p
+                    style={{ fontFamily: "var(--font-body)" }}
+                    className="text-sm text-[var(--color-charcoal)] leading-snug font-medium"
+                  >
+                    {item.title}
+                  </p>
+                  {bullets.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {bullets.map((point) => (
+                        <li
+                          key={point}
+                          style={{ fontFamily: "var(--font-body)" }}
+                          className="text-xs text-[var(--color-muted)] leading-relaxed flex gap-2"
+                        >
+                          <span className="text-[var(--color-gold-dark)] shrink-0">•</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* Bottom CTA strip */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -105,10 +100,7 @@ export default function SignatureAccommodations() {
           >
             Every service includes shampoo, deep conditioning &amp; blow dry.
           </p>
-          <a
-            href="/#booking"
-            className="btn-gold shrink-0"
-          >
+          <a href="/#booking" className="btn-gold shrink-0">
             Book Now
           </a>
         </motion.div>

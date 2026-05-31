@@ -2,68 +2,20 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import Link from "next/link";
+import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
+import { getBookingUrlForService } from "@/lib/booking-services";
 
-const categories = [
-  {
-    id: "extensions",
-    title: "Braid Extension Services",
-    accent: "var(--color-blush)",
-    services: [
-      { name: "Boho / Goddess Braids", price: "$300+", desc: "Knotless braids with flowing human hair curls. Size large to small, 80–150 braids.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Boho%2FGoddess%20Braids" },
-      { name: "Box Braids",             price: "$100+", desc: "Classic top-knot braids. Size XX-large to XX-small, 15–250 braids.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Box%20Braids" },
-      { name: "Cornrows",               price: "$150+", desc: "Straight backs to custom designed styles. Up to 50 rows.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Cornrows" },
-      { name: "Crochet Braids",         price: "$100+", desc: "Pre-looped hair crocheted into cornrow base.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Crochet%20Braids" },
-      { name: "Fulani / Tribal Braids", price: "$200+", desc: "Patterned cornrows with individual braid combo.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Fulani%2FTribal%20Braids" },
-      { name: "Knotless Braids",        price: "$150+", desc: "Lightweight, tension-free braids with seamless feed-in technique. 15–250 braids.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Knotless%20Braids" },
-      { name: "Illusion Locs",          price: "$200+", desc: "Palm-rolled locs base, two-strand twist extensions wrapped for a natural loc look.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Locs" },
-      { name: "Mermaid Locs",           price: "$300+", desc: "Long, boho locs with flowing human hair curls added.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Locs" },
-      { name: "Twist",                  price: "$100+", desc: "Two-strand twist with straight, curly, or kinky hair. Size XX-large to XX-small.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Extension%20Service%20Twist" },
-    ],
-  },
-  {
-    id: "natural",
-    title: "Natural Hair Services",
-    accent: "var(--color-gold)",
-    services: [
-      { name: "Cornrows",       price: "$75+",  desc: "Scalp braids with no added hair.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Natural%20Hair%20Cornrows" },
-      { name: "Loc Maintenance",price: "$120+", desc: "Retwist or retie.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Natural%20Hair%20Loc%20Maintenance" },
-      { name: "Coils",          price: "$125+", desc: "Palm-roll root and defined finger coils. Size large to XX-small, 80–250 coils.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Natural%20Hair%20Service%20Coils" },
-      { name: "Plats",          price: "$75+",  desc: "Individual box-style braids using only your natural hair. 15–250 plats.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Natural%20Hair%20Service%20Plats" },
-      { name: "Twist",          price: "$75+",  desc: "Two-strand twist using only your natural hair. 15–250 twists.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Natural%20Hair%20Service%20Twist" },
-      { name: "Illusion Locs",  price: "$150+", desc: "Faux loc look using only natural hair — no loc commitment.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Natural%20Service%20Illusion%20Loc%20Two%20Strand" },
-    ],
-  },
-  {
-    id: "other",
-    title: "Add-On Services",
-    accent: "var(--color-blush-dark)",
-    services: [
-      { name: "Braid Prep",          price: "$75+",  desc: "Professional sectioning to save you time — perfect before braiding your own hair.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Other%20Service%20Braid%20Prep" },
-      { name: "Hair Color",          price: "$50+",  desc: "Professional color with bond treatment, conditioning, and color-safe toning. Book as add-on or standalone.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Other%20Natural%20Hair%20Services" },
-      { name: "Olaplex Conditioning",price: "$45+",  desc: "Strengthens and repairs bonds with nano steam technology and deep moisture infusion.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Children%20Extension%20Services" },
-      { name: "Detangling",          price: "$100+", desc: "Gentle removal of knots, mats, or shed hair with patience and care.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Children%20Extension%20Services" },
-      { name: "Braid Take Down",     price: "$100+", desc: "Safe braid removal, thorough detangling, shampoo, deep conditioning, and blow-dry.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Children%20Extension%20Services" },
-      { name: "Wig Braid Down",      price: "$75",   desc: "Flat, comfortable braid foundation tailored for wig installs or protective styling.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Children%20Extension%20Services" },
-    ],
-  },
-  {
-    id: "children",
-    title: "Children's Services",
-    accent: "var(--color-gold-light)",
-    services: [
-      { name: "Extensions", price: "$70+", desc: "Boho, box, cornrows, crochet, illusion locs, knotless & twist.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Children%20Services%20Natural%20Hair" },
-      { name: "Natural",    price: "$50+", desc: "Coils, cornrows, crochet, detangling, illusion locs, plats, retie, retwist, twist.", url: "https://nubianluxebraidinglounge.as.me/schedule/38affb10/?categories[]=Children%20Services%20Natural%20Hair" },
-    ],
-  },
-];
+function ServiceCard({
+  service,
+}: {
+  service: PriceListCategoryWithServices["services"][number];
+}) {
+  const bullets = service.bulletPoints.filter(Boolean);
 
-function ServiceCard({ service }: { service: typeof categories[0]["services"][0] }) {
   return (
-    <motion.a
-      href={service.url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -75,32 +27,59 @@ function ServiceCard({ service }: { service: typeof categories[0]["services"][0]
           style={{ fontFamily: "var(--font-display)" }}
           className="text-xl font-light text-white group-hover:text-[var(--color-gold-light)] transition-colors duration-300"
         >
-          {service.name}
+          {service.title}
         </h4>
         <div className="flex items-center gap-1 shrink-0">
-          <span className="text-xl font-semibold text-[var(--color-gold)]" style={{ fontFamily: "var(--font-body)" }}>
+          <span
+            className="text-xl font-semibold text-[var(--color-gold)]"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
             {service.price}
           </span>
         </div>
       </div>
-      <p className="text-white/40 text-xs leading-relaxed flex-1">{service.desc}</p>
-      <div className="flex items-center gap-1.5 text-[var(--color-gold-dark)] text-xs tracking-[0.15em] uppercase group-hover:text-[var(--color-gold)] transition-colors duration-300">
+
+      {service.description && (
+        <p className="text-white/40 text-xs leading-relaxed">{service.description}</p>
+      )}
+
+      {bullets.length > 0 && (
+        <ul className="space-y-1">
+          {bullets.map((point, index) => (
+            <li
+              key={`${service.id}-${index}`}
+              className="text-white/40 text-xs leading-relaxed flex gap-2"
+            >
+              <span className="text-[var(--color-gold-dark)] shrink-0">•</span>
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Link
+        href={getBookingUrlForService(service.id)}
+        className="flex items-center gap-1.5 text-[var(--color-gold-dark)] text-xs tracking-[0.15em] uppercase group-hover:text-[var(--color-gold)] transition-colors duration-300 mt-auto"
+      >
         <span>Book This Style</span>
         <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-      </div>
-    </motion.a>
+      </Link>
+    </motion.div>
   );
 }
 
-export default function PriceList() {
-  const [open, setOpen] = useState<string>(categories[0].id);
+export default function PriceList({
+  categories,
+}: {
+  categories: PriceListCategoryWithServices[];
+}) {
+  const [open, setOpen] = useState<string>(categories[0]?.id ?? "");
 
   return (
     <section id="prices" className="relative py-28 bg-[var(--color-obsidian-soft)]">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
 
       <div className="section-container">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -124,7 +103,6 @@ export default function PriceList() {
           </p>
         </motion.div>
 
-        {/* Category tabs */}
         <div className="flex flex-wrap justify-center gap-3 mb-12">
           {categories.map((cat) => (
             <button
@@ -141,7 +119,6 @@ export default function PriceList() {
           ))}
         </div>
 
-        {/* Service grid */}
         <AnimatePresence mode="wait">
           {categories.map((cat) =>
             cat.id === open ? (
@@ -153,15 +130,14 @@ export default function PriceList() {
                 transition={{ duration: 0.35 }}
                 className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
               >
-                {cat.services.map((s) => (
-                  <ServiceCard key={s.name} service={s} />
+                {cat.services.map((service) => (
+                  <ServiceCard key={service.id} service={service} />
                 ))}
               </motion.div>
             ) : null
           )}
         </AnimatePresence>
 
-        {/* Bottom note */}
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}

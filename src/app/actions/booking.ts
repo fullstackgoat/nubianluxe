@@ -10,24 +10,215 @@ import {
 } from "@/lib/stripe";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { BookingTier } from "@/generated/prisma/client";
+import { parseDateInput, toDateKey } from "@/lib/dates";
+import { getHairColorRequirement } from "@/lib/hair-colors";
+import {
+  dateToTimeSlot,
+  slotToTime,
+  SLOT_HOLD_MS,
+} from "@/lib/slot-utils";
 
 const BookingSchema = z.object({
-  clientName:        z.string().min(2),
-  clientEmail:       z.string().email(),
-  clientPhone:       z.string().min(10),
-  service:           z.string().min(2),
-  serviceCategory:   z.string().min(2),
-  servicePrice:      z.number().int().nonnegative(), // catalog starting price in cents
-  tier:              z.enum(["REGULAR", "PREMIUM", "VIP"]),
-  date:              z.string(), // ISO date YYYY-MM-DD
-  timeSlot:          z.string(),
-  duration:          z.number().int().positive(),
-  payServiceUpfront: z.boolean().default(false),
-  notes:             z.string().optional(),
+  serviceId:           z.string().min(1),
+  serviceCategoryId:   z.string().min(1),
+  bookingSessionId:    z.string().min(1),
+  clientName:            z.string().min(2),
+  clientEmail:           z.string().email(),
+  clientPhone:           z.string().min(10),
+  service:               z.string().min(2),
+  serviceCategory:       z.string().min(2),
+  servicePrice:          z.number().int().nonnegative(),
+  stripeProductId:       z.string().optional(),
+  stripePriceId:         z.string().optional(),
+  hairColorCategory:     z.string().optional(),
+  hairColorValue:        z.string().optional(),
+  hairColorSkipped:      z.boolean().optional(),
+  tier:                  z.enum(["REGULAR", "PREMIUM", "VIP"]),
+  date:                  z.string(),
+  timeSlot:              z.string(),
+  duration:              z.number().int().positive(),
+  payServiceUpfront:     z.boolean().default(false),
+  notes:                 z.string().optional(),
 });
 
 export type BookingInput = z.infer<typeof BookingSchema>;
+
+export type SlotHoldInfo = {
+  date: string;
+  timeSlot: string;
+  expiresAt: string;
+};
+
+async function cleanupExpiredHolds() {
+  await prisma.slotHold.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+}
+
+function dayBounds(date: string) {
+  const day = parseDateInput(date);
+  const start = new Date(day);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(day);
+  end.setHours(23, 59, 59, 999);
+  return { day, start, end };
+}
+
+async function getAppointmentsForDay(date: string) {
+  const { start, end } = dayBounds(date);
+  return prisma.appointment.findMany({
+    where: {
+      date: { gte: start, lte: end },
+      status: { not: "CANCELLED" },
+    },
+    select: {
+      date: true,
+      status: true,
+      depositPaid: true,
+      bookingSessionId: true,
+    },
+  });
+}
+
+function isOwnPendingHold(
+  appt: { status: string; depositPaid: boolean; bookingSessionId: string | null },
+  sessionId?: string
+) {
+  return (
+    !!sessionId &&
+    appt.status === "PENDING" &&
+    !appt.depositPaid &&
+    appt.bookingSessionId === sessionId
+  );
+}
+
+async function getUnavailableSlots(date: string, sessionId?: string): Promise<string[]> {
+  await cleanupExpiredHolds();
+
+  const appointments = await getAppointmentsForDay(date);
+  const takenByAppointments = appointments
+    .filter((appt) => !isOwnPendingHold(appt, sessionId))
+    .map((appt) => dateToTimeSlot(appt.date));
+
+  const { day } = dayBounds(date);
+  const holds = await prisma.slotHold.findMany({
+    where: {
+      date: day,
+      expiresAt: { gt: new Date() },
+      ...(sessionId ? { NOT: { sessionId } } : {}),
+    },
+    select: { timeSlot: true },
+  });
+
+  const takenByOthers = holds.map((hold) => hold.timeSlot);
+  return [...new Set([...takenByAppointments, ...takenByOthers])];
+}
+
+async function validateActiveHold(
+  sessionId: string,
+  date: string,
+  timeSlot: string
+) {
+  await cleanupExpiredHolds();
+  const { day } = dayBounds(date);
+
+  const hold = await prisma.slotHold.findUnique({
+    where: { date_timeSlot: { date: day, timeSlot } },
+  });
+
+  if (!hold || hold.sessionId !== sessionId || hold.expiresAt <= new Date()) {
+    return {
+      ok: false as const,
+      error:
+        "Your time slot hold has expired. Please go back and select a new time.",
+    };
+  }
+
+  return { ok: true as const, hold };
+}
+
+export async function reserveSlotHold(
+  sessionId: string,
+  date: string,
+  timeSlot: string
+): Promise<{ expiresAt: string } | { error: string }> {
+  if (!sessionId?.trim()) {
+    return { error: "Invalid booking session." };
+  }
+
+  await cleanupExpiredHolds();
+  const { day } = dayBounds(date);
+
+  const unavailable = await getUnavailableSlots(date, sessionId);
+  if (unavailable.includes(timeSlot)) {
+    return { error: "That time slot is no longer available. Please choose another time." };
+  }
+
+  const existing = await prisma.slotHold.findUnique({
+    where: { date_timeSlot: { date: day, timeSlot } },
+  });
+
+  if (existing && existing.sessionId !== sessionId && existing.expiresAt > new Date()) {
+    return { error: "That time slot was just taken. Please choose another time." };
+  }
+
+  await prisma.slotHold.deleteMany({ where: { sessionId } });
+
+  const expiresAt = new Date(Date.now() + SLOT_HOLD_MS);
+  const hold = await prisma.slotHold.upsert({
+    where: { date_timeSlot: { date: day, timeSlot } },
+    create: { sessionId, date: day, timeSlot, expiresAt },
+    update: { sessionId, expiresAt },
+  });
+
+  return { expiresAt: hold.expiresAt.toISOString() };
+}
+
+export async function extendSlotHold(
+  sessionId: string,
+  date: string,
+  timeSlot: string
+): Promise<{ expiresAt: string } | { error: string }> {
+  const check = await validateActiveHold(sessionId, date, timeSlot);
+  if (!check.ok) return { error: check.error };
+
+  const expiresAt = new Date(Date.now() + SLOT_HOLD_MS);
+  const hold = await prisma.slotHold.update({
+    where: { id: check.hold.id },
+    data: { expiresAt },
+  });
+
+  return { expiresAt: hold.expiresAt.toISOString() };
+}
+
+export async function getActiveSlotHold(
+  sessionId: string
+): Promise<SlotHoldInfo | null> {
+  if (!sessionId?.trim()) return null;
+
+  await cleanupExpiredHolds();
+
+  const hold = await prisma.slotHold.findFirst({
+    where: {
+      sessionId,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { expiresAt: "desc" },
+  });
+
+  if (!hold) return null;
+
+  return {
+    date: toDateKey(hold.date),
+    timeSlot: hold.timeSlot,
+    expiresAt: hold.expiresAt.toISOString(),
+  };
+}
+
+export async function releaseSlotHold(sessionId: string) {
+  if (!sessionId?.trim()) return;
+  await prisma.slotHold.deleteMany({ where: { sessionId } });
+}
 
 export async function createBookingIntent(input: BookingInput) {
   const parsed = BookingSchema.safeParse(input);
@@ -35,22 +226,71 @@ export async function createBookingIntent(input: BookingInput) {
     return { error: "Invalid booking data", details: parsed.error.flatten() };
   }
 
-  const { tier, clientEmail, clientName, service, servicePrice, payServiceUpfront } = parsed.data;
+  const {
+    tier,
+    clientEmail,
+    clientName,
+    service,
+    servicePrice,
+    payServiceUpfront,
+    date,
+    timeSlot,
+    bookingSessionId,
+  } = parsed.data;
   const tierFee = TIER_FEES[tier];
   const tierPriceId = getTierPriceId(tier);
 
-  // Pricing model:
-  // - Deposit ($100) is always charged at booking and credits toward the service total.
-  // - Tier fee ($0/$25/$50) is always charged at booking, non-refundable, separate from service.
-  // - Service price is OPTIONALLY charged upfront. If upfront, we collect
-  //   the full service amount (the deposit is "applied" toward it, not double-charged).
-  //   If deferred, only deposit + tier fee is charged now; the remainder
-  //   (servicePrice - deposit) is collected in person at the appointment.
+  const holdCheck = await validateActiveHold(bookingSessionId, date, timeSlot);
+  if (!holdCheck.ok) {
+    return { error: holdCheck.error };
+  }
+
+  const blocked = await prisma.blockedDate.findFirst({
+    where: { date: parseDateInput(date) },
+  });
+  if (blocked) {
+    return { error: "This date is unavailable. Please choose another day." };
+  }
+
+  const unavailable = await getUnavailableSlots(date, bookingSessionId);
+  if (unavailable.includes(timeSlot)) {
+    return { error: "That time slot is no longer available. Please choose another time." };
+  }
+
+  const hairRequirement = getHairColorRequirement(parsed.data.serviceCategoryId);
+  const hairSkipped = parsed.data.hairColorSkipped === true;
+
+  if (hairRequirement === "required" && (hairSkipped || !parsed.data.hairColorValue?.trim())) {
+    return { error: "Please select a hair color from the color chart before booking." };
+  }
+
   const totalCharge = payServiceUpfront
-    ? servicePrice + tierFee                  // service price covers deposit; tier fee on top
-    : DEPOSIT_AMOUNT + tierFee;               // deposit + tier fee only
+    ? servicePrice + tierFee
+    : DEPOSIT_AMOUNT + tierFee;
+
+  const appointmentDate = new Date(`${parsed.data.date}T${slotToTime(parsed.data.timeSlot)}`);
 
   try {
+    const stalePending = await prisma.appointment.findMany({
+      where: {
+        bookingSessionId,
+        status: "PENDING",
+        depositPaid: false,
+      },
+      select: { id: true, stripePaymentIntentId: true },
+    });
+
+    for (const stale of stalePending) {
+      if (stale.stripePaymentIntentId) {
+        try {
+          await getStripe().paymentIntents.cancel(stale.stripePaymentIntentId);
+        } catch {
+          // Intent may already be canceled or succeeded.
+        }
+      }
+      await prisma.appointment.delete({ where: { id: stale.id } });
+    }
+
     const paymentIntent = await getStripe().paymentIntents.create({
       amount: totalCharge,
       currency: "usd",
@@ -58,12 +298,25 @@ export async function createBookingIntent(input: BookingInput) {
         clientEmail,
         clientName,
         service,
+        serviceId:              parsed.data.serviceId,
         tier,
         bookingDate:            parsed.data.date,
         timeSlot:               parsed.data.timeSlot,
+        bookingSessionId,
         pay_service_upfront:    String(payServiceUpfront),
         service_price_cents:    String(servicePrice),
         stripe_deposit_price:   STRIPE_PRICE_IDS.DEPOSIT,
+        ...(parsed.data.stripeProductId && {
+          stripe_service_product: parsed.data.stripeProductId,
+        }),
+        ...(parsed.data.stripePriceId && {
+          stripe_service_price: parsed.data.stripePriceId,
+        }),
+        ...(parsed.data.hairColorCategory &&
+          parsed.data.hairColorValue && {
+            hair_color_category: parsed.data.hairColorCategory,
+            hair_color_value: parsed.data.hairColorValue,
+          }),
         ...(tierPriceId && { stripe_tier_price: tierPriceId }),
       },
       description: payServiceUpfront
@@ -83,14 +336,17 @@ export async function createBookingIntent(input: BookingInput) {
         tier:                  parsed.data.tier,
         tierFee,
         deposit:               DEPOSIT_AMOUNT,
-        date:                  new Date(`${parsed.data.date}T${slotToTime(parsed.data.timeSlot)}`),
+        date:                  appointmentDate,
         duration:              parsed.data.duration,
         notes:                 parsed.data.notes,
+        bookingSessionId,
+        hairColorCategory:     hairSkipped ? null : parsed.data.hairColorCategory || null,
+        hairColorValue:        hairSkipped ? null : parsed.data.hairColorValue?.trim() || null,
         stripePaymentIntentId: paymentIntent.id,
-        // Note: depositPaid/tierFeePaid/servicePaid flip to true via the webhook
-        // once the PaymentIntent succeeds (see api/stripe/webhook/route.ts).
       },
     });
+
+    await prisma.slotHold.deleteMany({ where: { sessionId: bookingSessionId } });
 
     return {
       clientSecret:  paymentIntent.client_secret,
@@ -103,34 +359,19 @@ export async function createBookingIntent(input: BookingInput) {
   }
 }
 
-export async function getBookedSlots(date: string): Promise<string[]> {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-
-  const booked = await prisma.appointment.findMany({
-    where: {
-      date: { gte: start, lte: end },
-      status: { not: "CANCELLED" },
-    },
+export async function getBlockedDates(): Promise<string[]> {
+  const rows = await prisma.blockedDate.findMany({
     select: { date: true },
+    orderBy: { date: "asc" },
   });
-
-  return booked.map((a: { date: Date }) => {
-    const h = a.date.getHours();
-    const hour = h % 12 === 0 ? 12 : h % 12;
-    const ampm = h < 12 ? "AM" : "PM";
-    return `${hour}:00 ${ampm}`;
-  });
+  return rows.map((row) => toDateKey(row.date));
 }
 
-function slotToTime(slot: string): string {
-  const [time, ampm] = slot.split(" ");
-  let [hours] = time.split(":").map(Number);
-  if (ampm === "PM" && hours !== 12) hours += 12;
-  if (ampm === "AM" && hours === 12) hours = 0;
-  return `${String(hours).padStart(2, "0")}:00:00`;
+export async function getBookedSlots(
+  date: string,
+  sessionId?: string
+): Promise<string[]> {
+  return getUnavailableSlots(date, sessionId);
 }
 
 export async function confirmBooking(appointmentId: string) {

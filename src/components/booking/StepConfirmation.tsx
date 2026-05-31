@@ -3,7 +3,8 @@
 import { motion } from "motion/react";
 import type { BookingState } from "./BookingWizard";
 import Link from "next/link";
-import { CheckCircle, Calendar, Clock, Phone } from "lucide-react";
+import { CheckCircle, Calendar, Clock, Phone, Palette } from "lucide-react";
+import { formatHairColorSelection } from "@/lib/hair-colors";
 
 interface Props {
   state: BookingState;
@@ -56,6 +57,12 @@ export default function StepConfirmation({ state }: Props) {
         <div className="space-y-3">
           {[
             { icon: CheckCircle, label: state.service },
+            ...(state.hairColorValue && state.hairColorCategory
+              ? [{
+                  icon: Palette,
+                  label: formatHairColorSelection(state.hairColorCategory, state.hairColorValue),
+                }]
+              : []),
             { icon: Calendar, label: dateObj ? dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : state.date },
             { icon: Clock, label: `${state.timeSlot} · ${state.tier.charAt(0) + state.tier.slice(1).toLowerCase()} Tier` },
           ].map(({ icon: Icon, label }) => (

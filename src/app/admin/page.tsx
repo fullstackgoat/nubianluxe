@@ -1,6 +1,8 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getAccommodations } from "@/lib/accommodations";
+import { getPriceListCategories } from "@/lib/price-list";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import type { Metadata } from "next";
 
@@ -23,12 +25,16 @@ export default async function AdminPage() {
 
   let appointments: Awaited<ReturnType<typeof prisma.appointment.findMany>> = [];
   let blockedDates: Awaited<ReturnType<typeof prisma.blockedDate.findMany>> = [];
+  let accommodations: Awaited<ReturnType<typeof getAccommodations>> = [];
+  let priceListCategories: Awaited<ReturnType<typeof getPriceListCategories>> = [];
   let dbError: string | null = null;
 
   try {
-    [appointments, blockedDates] = await Promise.all([
+    [appointments, blockedDates, accommodations, priceListCategories] = await Promise.all([
       prisma.appointment.findMany({ orderBy: { date: "desc" } }),
       prisma.blockedDate.findMany({ orderBy: { date: "asc" } }),
+      getAccommodations(),
+      getPriceListCategories(),
     ]);
   } catch (err) {
     console.error("Admin DB error:", err);
@@ -39,6 +45,8 @@ export default async function AdminPage() {
     <AdminDashboard
       appointments={appointments}
       blockedDates={blockedDates}
+      accommodations={accommodations}
+      priceListCategories={priceListCategories}
       dbError={dbError}
     />
   );

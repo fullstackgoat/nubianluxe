@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { BookingState } from "./BookingWizard";
 import { ArrowLeft, Lock, CreditCard, Calendar } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
@@ -10,7 +10,8 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { createBookingIntent } from "@/app/actions/booking";
+import { formatHairColorSelection } from "@/lib/hair-colors";
+import { createBookingIntent, extendSlotHold } from "@/app/actions/booking";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
@@ -100,6 +101,18 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
 
   const totalNow = state.payServiceUpfront ? fullUpfront : bookingFeeOnly;
 
+  useEffect(() => {
+    if (!state.bookingSessionId || !state.date || !state.timeSlot) return;
+
+    void extendSlotHold(state.bookingSessionId, state.date, state.timeSlot).then((result) => {
+      if ("expiresAt" in result && result.expiresAt) {
+        update({ slotHoldExpiresAt: result.expiresAt });
+      }
+    });
+    // Refresh hold when entering the payment step.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSetUpfront = (val: boolean) => {
     if (val === state.payServiceUpfront) return;
     // Toggling invalidates any existing PaymentIntent (the amount changes).
@@ -117,12 +130,20 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
     setInitError("");
 
     const result = await createBookingIntent({
+      serviceId:         state.serviceId,
+      serviceCategoryId: state.serviceCategoryId,
+      bookingSessionId:  state.bookingSessionId,
       clientName:        state.clientName,
       clientEmail:       state.clientEmail,
       clientPhone:       state.clientPhone,
       service:           state.service,
       serviceCategory:   state.serviceCategory,
       servicePrice:      state.servicePriceCents,
+      stripeProductId:   state.stripeProductId ?? undefined,
+      stripePriceId:     state.stripePriceId ?? undefined,
+      hairColorCategory: state.hairColorCategory || undefined,
+      hairColorValue:    state.hairColorValue || undefined,
+      hairColorSkipped:  state.hairColorSkipped,
       tier:              state.tier,
       date:              state.date,
       timeSlot:          state.timeSlot,
@@ -200,9 +221,19 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
           Order Summary
         </p>
 
+        <Line label={`Service (${state.service})`} value={state.servicePrice} subtle />
+
+        {state.hairColorValue && state.hairColorCategory && (
+          <Line
+            label="Hair Color"
+            value={formatHairColorSelection(state.hairColorCategory, state.hairColorValue)}
+            subtle
+          />
+        )}
+
         {state.payServiceUpfront ? (
           <>
-            <Line label={`Service (${state.service})`} value={`$${(servicePrice / 100).toFixed(2)}`} />
+            <Line label="Service fee" value={`$${(servicePrice / 100).toFixed(2)}`} />
             <Line label="Deposit applied toward service" value={`–$${(DEPOSIT_CENTS / 100).toFixed(2)}`} subtle />
             <Line label="Deposit (held to reserve appointment)" value={`$${(DEPOSIT_CENTS / 100).toFixed(2)}`} subtle />
             {tierFee > 0 && (
