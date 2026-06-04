@@ -12,28 +12,19 @@ import {
   updateStripeProductDetails,
   validateCatalogPrice,
 } from "@/lib/stripe-catalog";
+import { isAdminConfigured, isAdminUser } from "@/lib/admin-auth";
 
-// Mirrors the OR-check in src/app/admin/page.tsx so the page guard and the
-// action guard agree. A user is admin if their Clerk userId matches
-// CLERK_ADMIN_USER_ID *or* their primary email matches ADMIN_EMAIL.
+// Mirrors src/app/admin/page.tsx — admin if userId or email is on the allowlist.
 async function assertAdmin() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthenticated");
 
-  const adminUserId = process.env.CLERK_ADMIN_USER_ID;
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminUserId && !adminEmail) throw new Error("Admin not configured");
+  if (!isAdminConfigured()) throw new Error("Admin not configured");
 
-  const idMatches = Boolean(adminUserId && userId === adminUserId);
+  const user = await currentUser();
+  const userEmail = user?.emailAddresses[0]?.emailAddress;
 
-  let emailMatches = false;
-  if (adminEmail) {
-    const user = await currentUser();
-    const userEmail = user?.emailAddresses[0]?.emailAddress;
-    emailMatches = Boolean(userEmail && userEmail === adminEmail);
-  }
-
-  if (!idMatches && !emailMatches) throw new Error("Forbidden");
+  if (!isAdminUser(userId, userEmail)) throw new Error("Forbidden");
 }
 
 export async function confirmAppointment(id: string) {

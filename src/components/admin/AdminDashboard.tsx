@@ -127,21 +127,27 @@ export default function AdminDashboard({
           </h1>
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex gap-0 border-b border-[rgba(201,168,76,0.15)] mb-8">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`font-body text-xs tracking-widest uppercase px-6 py-3 border-b-2 transition-all duration-200 ${
-                activeTab === tab
-                  ? "border-gold text-gold"
-                  : "border-transparent text-ivory/40 hover:text-ivory/70"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        {/* Tabs — horizontal scroll on mobile */}
+        <div className="-mx-6 sm:mx-0 mb-8 border-b border-[rgba(201,168,76,0.15)]">
+          <div
+            className="flex overflow-x-auto overscroll-x-contain px-6 sm:px-0 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold/30"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`font-body text-xs tracking-widest uppercase px-4 sm:px-6 py-3 border-b-2 transition-all duration-200 shrink-0 whitespace-nowrap ${
+                  activeTab === tab
+                    ? "border-gold text-gold"
+                    : "border-transparent text-ivory/40 hover:text-ivory/70"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Overview tab */}

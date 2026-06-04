@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAccommodations } from "@/lib/accommodations";
 import { getPriceListCategories } from "@/lib/price-list";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import { isAdminConfigured, isAdminUser } from "@/lib/admin-auth";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Admin | Nubian Luxe" };
@@ -13,15 +14,9 @@ export default async function AdminPage() {
   if (!userId) redirect("/sign-in");
 
   const user = await currentUser();
-  const adminUserId = process.env.CLERK_ADMIN_USER_ID;
-  const adminEmail = process.env.ADMIN_EMAIL;
   const userEmail = user?.emailAddresses[0]?.emailAddress;
 
-  const isAdmin =
-    (adminUserId && userId === adminUserId) ||
-    (adminEmail && userEmail === adminEmail);
-
-  if (!isAdmin) redirect("/");
+  if (!isAdminConfigured() || !isAdminUser(userId, userEmail)) redirect("/");
 
   let appointments: Awaited<ReturnType<typeof prisma.appointment.findMany>> = [];
   let blockedDates: Awaited<ReturnType<typeof prisma.blockedDate.findMany>> = [];
