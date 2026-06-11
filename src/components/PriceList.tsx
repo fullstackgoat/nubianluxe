@@ -6,13 +6,17 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
 import { getBookingUrlForService } from "@/lib/booking-services";
+import {
+  formatBulletPointMeta,
+  normalizeBulletPointsForSave,
+} from "@/lib/price-list-bullets";
 
 function ServiceCard({
   service,
 }: {
   service: PriceListCategoryWithServices["services"][number];
 }) {
-  const bullets = service.bulletPoints.filter(Boolean);
+  const bullets = normalizeBulletPointsForSave(service.bulletPoints);
 
   return (
     <motion.div
@@ -45,15 +49,23 @@ function ServiceCard({
 
       {bullets.length > 0 && (
         <ul className="space-y-1">
-          {bullets.map((point, index) => (
-            <li
-              key={`${service.id}-${index}`}
-              className="text-white/40 text-xs leading-relaxed flex gap-2"
-            >
-              <span className="text-[var(--color-gold-dark)] shrink-0">•</span>
-              <span>{point}</span>
-            </li>
-          ))}
+          {bullets.map((point, index) => {
+            const meta = formatBulletPointMeta(point);
+            return (
+              <li
+                key={`${service.id}-${index}`}
+                className="text-white/40 text-xs leading-relaxed flex gap-2"
+              >
+                <span className="text-[var(--color-gold-dark)] shrink-0">•</span>
+                <span>
+                  {point.label}
+                  {meta ? (
+                    <span className="text-white/25"> — {meta}</span>
+                  ) : null}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
 

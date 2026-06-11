@@ -1,11 +1,41 @@
-import { SignIn } from "@clerk/nextjs";
+import { Suspense } from "react";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import SignInForm from "@/components/auth/SignInForm";
 
 export const metadata = {
   title: "Sign In | Nubian Luxe",
 };
 
-export default function SignInPage() {
+type PageProps = {
+  params: Promise<{ "sign-in"?: string[] }>;
+  searchParams: Promise<{ redirect_url?: string }>;
+};
+
+function safeRedirectPath(raw: string | undefined): string {
+  if (!raw) return "/account";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/account";
+  if (raw.startsWith("/sign-in")) return "/account";
+  return raw;
+}
+
+export default async function SignInPage({ params, searchParams }: PageProps) {
+  const { userId } = await auth();
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const segments = resolvedParams["sign-in"] ?? [];
+
+  if (segments[0] === "admin") {
+    redirect(`/sign-in?redirect_url=${encodeURIComponent("/admin")}`);
+  }
+
+  const redirectPath = safeRedirectPath(resolvedSearchParams.redirect_url);
+
+  if (userId) {
+    redirect(redirectPath);
+  }
+
   return (
     <main className="min-h-screen bg-obsidian">
       <Navigation />
@@ -20,69 +50,16 @@ export default function SignInPage() {
             </h1>
             <div className="gold-divider mt-4 mx-auto" />
           </div>
-          <SignIn
-            appearance={{
-              variables: {
-                colorPrimary:        "#C9A84C",
-                colorBackground:     "#111111",
-                colorText:           "#F5F0E8",
-                colorTextSecondary:  "rgba(245,240,232,0.90)",
-                colorInputBackground:"rgba(255,255,255,0.07)",
-                colorInputText:      "#F5F0E8",
-                colorNeutral:        "#F5F0E8",
-                colorTextOnPrimaryBackground: "#0A0A0A",
-                borderRadius:        "0px",
-                fontFamily:          "var(--font-body)",
-                fontSize:            "14px",
-              },
-              elements: {
-                rootBox: "w-full",
-                card: "bg-[#111111] border border-[rgba(201,168,76,0.25)] shadow-none rounded-none",
-                headerTitle: "hidden",
-                headerSubtitle: "hidden",
 
-                // Social buttons — force white text and visible icons
-                socialButtonsBlockButton:
-                  "border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] rounded-none transition-colors",
-                socialButtonsBlockButtonText:
-                  "text-ivory font-body font-medium",
-                socialButtonsBlockButtonArrow: "text-ivory",
-                providerIcon: "brightness-200",
-
-                // Divider
-                dividerLine: "bg-[rgba(255,255,255,0.12)]",
-                dividerText: "text-ivory/70 font-body text-xs",
-
-                // Form fields
-                formFieldLabel: "text-ivory/80 font-body text-sm",
-                formFieldLabelRow: "text-ivory/80",
-                formFieldInput:
-                  "bg-[rgba(255,255,255,0.07)] border border-[rgba(255,255,255,0.15)] text-ivory rounded-none focus:border-gold focus:ring-0 font-body placeholder-ivory/30",
-                formFieldInputShowPasswordButton: "text-ivory/60 hover:text-ivory",
-
-                // Primary button
-                formButtonPrimary:
-                  "bg-gold text-obsidian hover:bg-[#d4b05a] rounded-none font-body font-semibold tracking-widest uppercase text-sm transition-colors",
-
-                // Footer
-                footerActionText: "text-ivory/70 font-body",
-                footerActionLink: "text-gold hover:text-[#d4b05a] font-body font-medium",
-                footerAction: "border-t border-[rgba(255,255,255,0.08)]",
-
-                // OTP / verification
-                otpCodeFieldInput: "border-[rgba(201,168,76,0.3)] text-ivory bg-[rgba(255,255,255,0.07)]",
-
-                // Alerts & errors
-                formFieldErrorText: "text-rose-400 font-body",
-                alertText: "text-ivory/70 font-body",
-                alert: "border-[rgba(201,168,76,0.2)]",
-
-                // Identity preview (after email step)
-                identityPreviewText: "text-ivory font-body",
-                identityPreviewEditButton: "text-gold hover:text-[#d4b05a]",
-              },
-            }}
-          />
+          <Suspense
+            fallback={
+              <div className="glass-card p-8 text-center">
+                <p className="text-ivory/40 font-body text-sm">Loading sign in…</p>
+              </div>
+            }
+          >
+            <SignInForm />
+          </Suspense>
         </div>
       </div>
     </main>

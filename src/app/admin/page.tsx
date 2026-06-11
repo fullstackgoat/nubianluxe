@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Admin | Nubian Luxe" };
 
 export default async function AdminPage() {
   const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  if (!userId) redirect("/sign-in?redirect_url=/admin");
 
   const user = await currentUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress;

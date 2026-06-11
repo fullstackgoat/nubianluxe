@@ -9,13 +9,18 @@ import {
   resyncStripeCatalog,
   updatePriceListService,
 } from "@/app/actions/admin";
+import {
+  countFilledBulletPoints,
+  EMPTY_BULLET_POINT,
+  type PriceListBulletPoint,
+} from "@/lib/price-list-bullets";
 
 type EditableService = {
   title: string;
   price: string;
   description: string;
   duration: number;
-  bulletPoints: string[];
+  bulletPoints: PriceListBulletPoint[];
 };
 
 const EMPTY_DRAFT: EditableService = {
@@ -23,7 +28,7 @@ const EMPTY_DRAFT: EditableService = {
   price: "",
   description: "",
   duration: 180,
-  bulletPoints: [""],
+  bulletPoints: [{ ...EMPTY_BULLET_POINT }],
 };
 
 function toEditable(service: PriceListCategoryWithServices["services"][number]): EditableService {
@@ -33,7 +38,9 @@ function toEditable(service: PriceListCategoryWithServices["services"][number]):
     description: service.description,
     duration: service.duration,
     bulletPoints:
-      service.bulletPoints.length > 0 ? [...service.bulletPoints] : [""],
+      service.bulletPoints.length > 0
+        ? service.bulletPoints.map((point) => ({ ...point }))
+        : [{ ...EMPTY_BULLET_POINT }],
   };
 }
 
@@ -119,7 +126,7 @@ function ServiceFormFields({
             onClick={() =>
               onChange((current) => ({
                 ...current,
-                bulletPoints: [...current.bulletPoints, ""],
+                bulletPoints: [...current.bulletPoints, { ...EMPTY_BULLET_POINT }],
               }))
             }
             className="inline-flex items-center gap-1 font-body text-xs tracking-widest uppercase text-gold hover:text-[#d4b05a] transition-colors"
@@ -129,39 +136,107 @@ function ServiceFormFields({
           </button>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {draft.bulletPoints.map((point, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={point}
-                placeholder="Bullet point text"
-                onChange={(e) =>
-                  onChange((current) => ({
-                    ...current,
-                    bulletPoints: current.bulletPoints.map((existing, i) =>
-                      i === index ? e.target.value : existing
-                    ),
-                  }))
-                }
-                className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  onChange((current) => ({
-                    ...current,
-                    bulletPoints:
-                      current.bulletPoints.length === 1
-                        ? [""]
-                        : current.bulletPoints.filter((_, i) => i !== index),
-                  }))
-                }
-                className="shrink-0 w-10 h-10 border border-[rgba(201,168,76,0.15)] text-ivory/50 hover:text-red-400 hover:border-red-500/20 transition-colors flex items-center justify-center"
-                aria-label="Remove bullet point"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
+            <div
+              key={index}
+              className="p-3 border border-[rgba(201,168,76,0.12)] bg-[rgba(255,255,255,0.02)]"
+            >
+              <div className="flex items-start gap-2">
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <label className="block font-body text-ivory/40 text-[0.65rem] tracking-widest uppercase mb-1.5">
+                      Label
+                    </label>
+                    <input
+                      type="text"
+                      value={point.label}
+                      placeholder="e.g. Small, Medium, Large"
+                      onChange={(e) =>
+                        onChange((current) => ({
+                          ...current,
+                          bulletPoints: current.bulletPoints.map((existing, i) =>
+                            i === index ? { ...existing, label: e.target.value } : existing
+                          ),
+                        }))
+                      }
+                      className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-body text-ivory/40 text-[0.65rem] tracking-widest uppercase mb-1.5">
+                        Duration (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min={15}
+                        step={15}
+                        value={point.duration ?? ""}
+                        placeholder="Optional"
+                        onChange={(e) =>
+                          onChange((current) => ({
+                            ...current,
+                            bulletPoints: current.bulletPoints.map((existing, i) =>
+                              i === index
+                                ? {
+                                    ...existing,
+                                    duration: e.target.value
+                                      ? Math.max(15, Number(e.target.value) || 15)
+                                      : null,
+                                  }
+                                : existing
+                            ),
+                          }))
+                        }
+                        className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-body text-ivory/40 text-[0.65rem] tracking-widest uppercase mb-1.5">
+                        Cost
+                      </label>
+                      <input
+                        type="text"
+                        value={point.cost ?? ""}
+                        placeholder="$150+"
+                        onChange={(e) =>
+                          onChange((current) => ({
+                            ...current,
+                            bulletPoints: current.bulletPoints.map((existing, i) =>
+                              i === index
+                                ? {
+                                    ...existing,
+                                    cost: e.target.value.trim() ? e.target.value : null,
+                                  }
+                                : existing
+                            ),
+                          }))
+                        }
+                        className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(201,168,76,0.15)] text-ivory font-body text-sm px-4 py-2.5 focus:outline-none focus:border-gold/40 placeholder-ivory/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChange((current) => ({
+                      ...current,
+                      bulletPoints:
+                        current.bulletPoints.length === 1
+                          ? [{ ...EMPTY_BULLET_POINT }]
+                          : current.bulletPoints.filter((_, i) => i !== index),
+                    }))
+                  }
+                  className="shrink-0 w-10 h-10 border border-[rgba(201,168,76,0.15)] text-ivory/50 hover:text-red-400 hover:border-red-500/20 transition-colors flex items-center justify-center mt-6"
+                  aria-label="Remove bullet point"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -433,7 +508,7 @@ export default function PriceListPanel({
           const draft = drafts[service.id] ?? toEditable(service);
           const isExpanded = expandedId === service.id;
           const isSaved = savedId === service.id && !isPending;
-          const bulletCount = draft.bulletPoints.filter((point) => point.trim()).length;
+          const bulletCount = countFilledBulletPoints(draft.bulletPoints);
 
           return (
             <div key={service.id} className="glass-card overflow-hidden">

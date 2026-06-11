@@ -96,7 +96,7 @@ model PriceListService {
   title            String
   price            String
   description      String
-  bulletPoints     String[]        @default([])
+  bulletPoints     Json            @default("[]")
   bookingUrl       String
   duration         Int             @default(180)
   stripeProductId  String?

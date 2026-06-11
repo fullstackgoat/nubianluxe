@@ -2,7 +2,7 @@ export type DefaultPriceListService = {
   title: string;
   price: string;
   description: string;
-  bulletPoints: string[];
+  bulletPoints: import("@/lib/price-list-bullets").PriceListBulletPoint[];
   bookingUrl: string;
 };
 
@@ -210,6 +210,8 @@ export const DEFAULT_PRICE_LIST_CATEGORIES: DefaultPriceListCategory[] = [
   },
 ];
 
+import type { PriceListBulletPoint } from "@/lib/price-list-bullets";
+
 export type PriceListCategoryWithServices = {
   id: string;
   title: string;
@@ -221,7 +223,7 @@ export type PriceListCategoryWithServices = {
     title: string;
     price: string;
     description: string;
-    bulletPoints: string[];
+    bulletPoints: PriceListBulletPoint[];
     bookingUrl: string;
     duration: number;
     stripeProductId: string | null;

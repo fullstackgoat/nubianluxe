@@ -14,6 +14,10 @@ import {
 } from "@/lib/stripe-catalog";
 import { isAdminConfigured, isAdminUser } from "@/lib/admin-auth";
 import { resyncAllPriceListServices } from "@/lib/sync-stripe-catalog";
+import {
+  normalizeBulletPointsForSave,
+  type PriceListBulletPoint,
+} from "@/lib/price-list-bullets";
 
 // Mirrors src/app/admin/page.tsx — admin if userId or email is on the allowlist.
 async function assertAdmin() {
@@ -131,7 +135,7 @@ export async function updatePriceListService(
   data: {
     title: string;
     description: string;
-    bulletPoints: string[];
+    bulletPoints: PriceListBulletPoint[];
     price?: string;
     duration?: number;
   }
@@ -148,9 +152,7 @@ export async function updatePriceListService(
   const description = data.description.trim();
   if (!title) throw new Error("Title is required");
 
-  const bulletPoints = data.bulletPoints
-    .map((point) => point.trim())
-    .filter(Boolean);
+  const bulletPoints = normalizeBulletPointsForSave(data.bulletPoints);
 
   const nextPrice = data.price?.trim() ?? existing.price;
   if (data.price !== undefined) {
@@ -206,7 +208,7 @@ export async function createPriceListService(
     title: string;
     price: string;
     description: string;
-    bulletPoints: string[];
+    bulletPoints: PriceListBulletPoint[];
     duration?: number;
   }
 ) {
@@ -234,9 +236,7 @@ export async function createPriceListService(
       ? data.duration
       : getServiceDuration(categoryId, title);
 
-  const bulletPoints = data.bulletPoints
-    .map((point) => point.trim())
-    .filter(Boolean);
+  const bulletPoints = normalizeBulletPointsForSave(data.bulletPoints);
 
   const service = await prisma.priceListService.create({
     data: {
