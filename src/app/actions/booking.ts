@@ -17,6 +17,13 @@ import {
   slotToTime,
   SLOT_HOLD_MS,
 } from "@/lib/slot-utils";
+import { parseServicePriceCents } from "@/lib/booking-data";
+import {
+  computeServiceSelectionTotals,
+  formatSelectedServiceOptions,
+  getPricedBulletIndices,
+  parseBulletPoints,
+} from "@/lib/price-list-bullets";
 
 const BookingSchema = z.object({
   serviceId:           z.string().min(1),
@@ -28,6 +35,7 @@ const BookingSchema = z.object({
   service:               z.string().min(2),
   serviceCategory:       z.string().min(2),
   servicePrice:          z.number().int().nonnegative(),
+  selectedBulletIndices: z.array(z.number().int().nonnegative()).default([]),
   stripeProductId:       z.string().optional(),
   stripePriceId:         z.string().optional(),
   hairColorCategory:     z.string().optional(),
@@ -264,6 +272,54 @@ export async function createBookingIntent(input: BookingInput) {
     return { error: "Please select a hair color from the color chart before booking." };
   }
 
+  const dbService = await prisma.priceListService.findUnique({
+    where: { id: parsed.data.serviceId },
+    select: {
+      title: true,
+      price: true,
+      duration: true,
+      bulletPoints: true,
+      categoryId: true,
+    },
+  });
+
+  if (!dbService || dbService.categoryId !== parsed.data.serviceCategoryId) {
+    return { error: "Selected service is no longer available. Please refresh and try again." };
+  }
+
+  const bulletPoints = parseBulletPoints(dbService.bulletPoints);
+  const pricedBulletIndices = getPricedBulletIndices(bulletPoints);
+
+  if (pricedBulletIndices.length > 0) {
+    const hasSelection = parsed.data.selectedBulletIndices.some((index) =>
+      pricedBulletIndices.includes(index)
+    );
+    if (!hasSelection) {
+      return { error: "Please select a service option before booking." };
+    }
+  }
+
+  const pricing = computeServiceSelectionTotals({
+    basePriceCents: parseServicePriceCents(dbService.price),
+    basePriceLabel: dbService.price,
+    baseDuration: dbService.duration,
+    bulletPoints,
+    selectedIndices: parsed.data.selectedBulletIndices,
+  });
+
+  if (pricing.servicePriceCents !== servicePrice) {
+    return { error: "Service price changed. Please refresh and try again." };
+  }
+
+  if (pricing.duration !== parsed.data.duration) {
+    return { error: "Service duration changed. Please refresh and try again." };
+  }
+
+  const selectedOptionsNote = formatSelectedServiceOptions(pricing.selectedOptions);
+  const combinedNotes = [parsed.data.notes?.trim(), selectedOptionsNote ? `Service options: ${selectedOptionsNote}` : ""]
+    .filter(Boolean)
+    .join("\n\n");
+
   const totalCharge = payServiceUpfront
     ? servicePrice + tierFee
     : DEPOSIT_AMOUNT + tierFee;
@@ -305,6 +361,7 @@ export async function createBookingIntent(input: BookingInput) {
         bookingSessionId,
         pay_service_upfront:    String(payServiceUpfront),
         service_price_cents:    String(servicePrice),
+        ...(selectedOptionsNote && { service_options: selectedOptionsNote }),
         stripe_deposit_price:   STRIPE_PRICE_IDS.DEPOSIT,
         ...(parsed.data.stripeProductId && {
           stripe_service_product: parsed.data.stripeProductId,
@@ -330,15 +387,15 @@ export async function createBookingIntent(input: BookingInput) {
         clientName:            parsed.data.clientName,
         clientEmail:           parsed.data.clientEmail,
         clientPhone:           parsed.data.clientPhone,
-        service:               parsed.data.service,
+        service:               dbService.title,
         serviceCategory:       parsed.data.serviceCategory,
         servicePrice,
         tier:                  parsed.data.tier,
         tierFee,
         deposit:               DEPOSIT_AMOUNT,
         date:                  appointmentDate,
-        duration:              parsed.data.duration,
-        notes:                 parsed.data.notes,
+        duration:              pricing.duration,
+        notes:                 combinedNotes || null,
         bookingSessionId,
         hairColorCategory:     hairSkipped ? null : parsed.data.hairColorCategory || null,
         hairColorValue:        hairSkipped ? null : parsed.data.hairColorValue?.trim() || null,

@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { parseServicePriceCents } from "@/lib/booking-data";
 import type { BookingCatalogCategory } from "@/lib/booking-services";
+import { buildBookingServicePricing } from "@/lib/booking-services";
 import { getHairColorRequirement } from "@/lib/hair-colors";
+import {
+  formatBulletCostDisplay,
+  formatBulletPointMeta,
+  getPricedBulletIndices,
+  normalizeBulletPointsForSave,
+} from "@/lib/price-list-bullets";
 import type { BookingState } from "./BookingWizard";
 
 interface Props {
@@ -21,12 +27,23 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
   const [openCategoryId, setOpenCategoryId] = useState<string>(initialCategory);
 
   const selectedCategory = catalog.find((cat) => cat.id === openCategoryId);
-  const canProceed = !!state.serviceId;
+  const selectedItem = selectedCategory?.items.find((item) => item.id === state.serviceId);
+  const pricedBulletIndices = selectedItem
+    ? getPricedBulletIndices(selectedItem.bulletPoints)
+    : [];
+  const normalizedBullets = selectedItem
+    ? normalizeBulletPointsForSave(selectedItem.bulletPoints)
+    : [];
+  const requiresBulletSelection = pricedBulletIndices.length > 0;
+  const hasValidBulletSelection =
+    !requiresBulletSelection ||
+    state.selectedBulletIndices.some((index) => pricedBulletIndices.includes(index));
+  const canProceed = !!state.serviceId && hasValidBulletSelection;
   const hairColorReq = getHairColorRequirement(state.serviceCategoryId);
   const continueLabel =
     hairColorReq !== "none" ? "Continue — Select Hair Color" : "Continue — Choose Booking Tier";
 
-  const select = (
+  const selectService = (
     category: BookingCatalogCategory,
     item: BookingCatalogCategory["items"][number]
   ) => {
@@ -35,14 +52,29 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
       serviceCategoryId: category.id,
       serviceCategory: category.category,
       service: item.name,
-      duration: item.duration,
-      servicePrice: item.price,
-      servicePriceCents: parseServicePriceCents(item.price),
       stripeProductId: item.stripeProductId,
       stripePriceId: item.stripePriceId,
       hairColorCategory: "",
       hairColorValue: "",
       hairColorSkipped: false,
+      clientSecret: "",
+      appointmentId: "",
+      totalCharge: 0,
+      ...buildBookingServicePricing(item, []),
+    });
+  };
+
+  const toggleBulletOption = (index: number) => {
+    if (!selectedItem) return;
+
+    const isSelected = state.selectedBulletIndices.includes(index);
+    const nextIndices = isSelected ? [] : [index];
+
+    update({
+      clientSecret: "",
+      appointmentId: "",
+      totalCharge: 0,
+      ...buildBookingServicePricing(selectedItem, nextIndices),
     });
   };
 
@@ -80,7 +112,7 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
           return (
             <button
               key={item.id}
-              onClick={() => select(selectedCategory, item)}
+              onClick={() => selectService(selectedCategory, item)}
               className={`text-left p-4 sm:p-5 rounded-xl border transition-all duration-300 w-full min-w-0 ${
                 isSelected
                   ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
@@ -115,6 +147,81 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
           );
         })}
       </div>
+
+      {selectedItem && requiresBulletSelection && (
+        <div className="glass-card p-4 sm:p-5 space-y-4 min-w-0">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)]">
+                Service Options
+              </p>
+              <p className="text-white/50 text-sm mt-1">
+                Choose an add-on option. Your total updates automatically.
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-[0.6rem] tracking-[0.2em] uppercase text-white/30">Current total</p>
+              <p className="text-[var(--color-gold)] text-xl font-semibold">{state.servicePrice}</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {pricedBulletIndices.map((index) => {
+              const point = normalizedBullets[index];
+              if (!point) return null;
+
+              const isChecked = state.selectedBulletIndices.includes(index);
+              const meta = formatBulletPointMeta(point);
+              const addOnLabel = formatBulletCostDisplay(point.cost);
+
+              return (
+                <label
+                  key={`${selectedItem.id}-${index}`}
+                  className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 ${
+                    isChecked
+                      ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
+                      : "border-white/10 hover:border-white/25 bg-[rgba(255,255,255,0.02)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleBulletOption(index)}
+                    className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-gold)]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-white text-sm font-medium capitalize">{point.label}</span>
+                      {addOnLabel && (
+                        <span className="text-[var(--color-gold)] text-sm font-semibold shrink-0">
+                          {addOnLabel}
+                        </span>
+                      )}
+                    </div>
+                    {meta && <p className="text-white/35 text-xs mt-1">{meta}</p>}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <p className="text-white/35 text-xs">
+            Base price {state.baseServicePrice}
+            {state.selectedServiceOptions.length > 0
+              ? ` + ${state.selectedServiceOptions
+                  .map((option) => `$${(option.costCents / 100).toFixed(0)}`)
+                  .join(" + ")}`
+              : ""}{" "}
+            = {state.servicePrice}
+          </p>
+        </div>
+      )}
+
+      {!hasValidBulletSelection && state.serviceId && (
+        <p className="text-amber-200/90 text-sm bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3">
+          Select a service option above to continue.
+        </p>
+      )}
 
       <button
         onClick={onNext}

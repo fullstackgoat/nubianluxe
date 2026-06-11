@@ -72,6 +72,15 @@ export default function StepClientInfo({ state, update, onNext, onBack }: Props)
       <div className="glass-card p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm min-w-0">
         {[
           { label: "Service", value: state.service },
+          ...(state.selectedServiceOptions.length > 0
+            ? [{
+                label: "Options",
+                value: state.selectedServiceOptions
+                  .map((option) => `${option.label} (+$${(option.costCents / 100).toFixed(0)})`)
+                  .join(", "),
+              }]
+            : []),
+          { label: "Price", value: state.servicePrice },
           { label: "Tier", value: state.tier.charAt(0) + state.tier.slice(1).toLowerCase() },
           {
             label: "Date",

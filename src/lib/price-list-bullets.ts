@@ -49,13 +49,18 @@ export function parseBulletPoints(raw: unknown): PriceListBulletPoint[] {
             ? Math.max(1, Number(durationValue) || 0) || null
             : null;
 
+      const costValue = point.cost;
+      const parsedCost =
+        typeof costValue === "number" && costValue > 0
+          ? String(costValue)
+          : typeof costValue === "string" && costValue.trim()
+            ? costValue.trim()
+            : null;
+
       return {
         label: typeof point.label === "string" ? point.label : "",
         duration: parsedDuration,
-        cost:
-          typeof point.cost === "string" && point.cost.trim()
-            ? point.cost.trim()
-            : null,
+        cost: parsedCost,
       };
     }
 
@@ -86,6 +91,95 @@ export function countFilledBulletPoints(points: PriceListBulletPoint[]): number 
 export function formatBulletPointMeta(point: PriceListBulletPoint): string {
   const parts: string[] = [];
   if (point.duration) parts.push(`${point.duration} min`);
-  if (point.cost) parts.push(point.cost);
+  if (point.cost) parts.push(formatBulletCostDisplay(point.cost));
   return parts.join(" · ");
+}
+
+export function parseBulletCostCents(cost: string | null): number {
+  if (!cost?.trim()) return 0;
+  const match = cost.match(/([\d,]+(?:\.\d{1,2})?)/);
+  if (!match) return 0;
+  const dollars = parseFloat(match[1].replace(/,/g, ""));
+  if (Number.isNaN(dollars)) return 0;
+  return Math.round(dollars * 100);
+}
+
+export function formatBulletCostDisplay(cost: string | null): string {
+  const cents = parseBulletCostCents(cost);
+  if (cents <= 0) return cost?.trim() ?? "";
+  return `+$${(cents / 100).toFixed(0)}`;
+}
+
+export type SelectedServiceOption = {
+  label: string;
+  costCents: number;
+  durationMinutes: number | null;
+};
+
+export function getPricedBulletIndices(points: PriceListBulletPoint[]): number[] {
+  const normalized = normalizeBulletPointsForSave(points);
+  return normalized
+    .map((point, index) => ({ point, index }))
+    .filter(({ point }) => parseBulletCostCents(point.cost) > 0)
+    .map(({ index }) => index);
+}
+
+export function computeServiceSelectionTotals(input: {
+  basePriceCents: number;
+  basePriceLabel: string;
+  baseDuration: number;
+  bulletPoints: PriceListBulletPoint[];
+  selectedIndices: number[];
+}): {
+  servicePriceCents: number;
+  servicePriceLabel: string;
+  duration: number;
+  selectedOptions: SelectedServiceOption[];
+} {
+  const normalized = normalizeBulletPointsForSave(input.bulletPoints);
+  const pricedIndices = new Set(getPricedBulletIndices(input.bulletPoints));
+  const validSelection = input.selectedIndices.filter((index) => pricedIndices.has(index));
+
+  let addOnCents = 0;
+  let addOnDuration = 0;
+  const selectedOptions: SelectedServiceOption[] = [];
+
+  for (const index of validSelection) {
+    const point = normalized[index];
+    if (!point) continue;
+
+    const costCents = parseBulletCostCents(point.cost);
+    if (costCents <= 0) continue;
+
+    addOnCents += costCents;
+    if (point.duration) addOnDuration += point.duration;
+    selectedOptions.push({
+      label: point.label,
+      costCents,
+      durationMinutes: point.duration,
+    });
+  }
+
+  const servicePriceCents = input.basePriceCents + addOnCents;
+  const duration = input.baseDuration + addOnDuration;
+  const hasPlus = input.basePriceLabel.includes("+");
+
+  const servicePriceLabel =
+    addOnCents > 0
+      ? `$${(servicePriceCents / 100).toFixed(0)}${hasPlus ? "+" : ""}`
+      : input.basePriceLabel;
+
+  return {
+    servicePriceCents,
+    servicePriceLabel,
+    duration,
+    selectedOptions,
+  };
+}
+
+export function formatSelectedServiceOptions(options: SelectedServiceOption[]): string {
+  if (options.length === 0) return "";
+  return options
+    .map((option) => `${option.label} (+$${(option.costCents / 100).toFixed(0)})`)
+    .join(", ");
 }

@@ -1,10 +1,14 @@
 import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
+import type { PriceListBulletPoint, SelectedServiceOption } from "@/lib/price-list-bullets";
+import { computeServiceSelectionTotals } from "@/lib/price-list-bullets";
+import { parseServicePriceCents } from "@/lib/booking-data";
 
 export type BookingCatalogItem = {
   id: string;
   name: string;
   price: string;
   duration: number;
+  bulletPoints: PriceListBulletPoint[];
   stripeProductId: string | null;
   stripePriceId: string | null;
 };
@@ -26,6 +30,7 @@ export function toBookingCatalog(
       name: service.title,
       price: service.price,
       duration: service.duration,
+      bulletPoints: service.bulletPoints,
       stripeProductId: service.stripeProductId,
       stripePriceId: service.stripePriceId,
     })),
@@ -48,6 +53,51 @@ export function findBookingService(
   return null;
 }
 
-export function getBookingUrlForService(serviceId: string): string {
-  return `/book?serviceId=${serviceId}`;
+export function getBookingUrlForService(
+  serviceId: string,
+  selectedBulletIndices: number[] = []
+): string {
+  const params = new URLSearchParams({ serviceId });
+  if (selectedBulletIndices.length > 0) {
+    params.set("bullets", selectedBulletIndices.join(","));
+  }
+  return `/book?${params.toString()}`;
+}
+
+export function parseBulletIndicesFromParam(value: string | null): number[] {
+  if (!value?.trim()) return [];
+
+  return value
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((index) => Number.isInteger(index) && index >= 0);
+}
+
+export function buildBookingServicePricing(
+  item: BookingCatalogItem,
+  selectedBulletIndices: number[]
+) {
+  const baseServicePrice = item.price;
+  const baseServicePriceCents = parseServicePriceCents(item.price);
+  const baseDuration = item.duration;
+
+  const totals = computeServiceSelectionTotals({
+    basePriceCents: baseServicePriceCents,
+    basePriceLabel: baseServicePrice,
+    baseDuration,
+    bulletPoints: item.bulletPoints,
+    selectedIndices: selectedBulletIndices,
+  });
+
+  return {
+    baseServicePrice,
+    baseServicePriceCents,
+    baseDuration,
+    serviceBulletPoints: item.bulletPoints,
+    selectedBulletIndices,
+    selectedServiceOptions: totals.selectedOptions,
+    servicePrice: totals.servicePriceLabel,
+    servicePriceCents: totals.servicePriceCents,
+    duration: totals.duration,
+  };
 }

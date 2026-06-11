@@ -12,6 +12,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { formatHairColorSelection } from "@/lib/hair-colors";
+import { formatSelectedServiceOptions } from "@/lib/price-list-bullets";
 import { createBookingIntent, extendSlotHold } from "@/app/actions/booking";
 
 const stripePromise = loadStripe(
@@ -140,6 +141,7 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
       service:           state.service,
       serviceCategory:   state.serviceCategory,
       servicePrice:      state.servicePriceCents,
+      selectedBulletIndices: state.selectedBulletIndices,
       stripeProductId:   state.stripeProductId ?? undefined,
       stripePriceId:     state.stripePriceId ?? undefined,
       hairColorCategory: state.hairColorCategory || undefined,
@@ -226,6 +228,18 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
         </p>
 
         <Line label={`Service (${state.service})`} value={state.servicePrice} subtle />
+
+        {state.selectedServiceOptions.length > 0 && (
+          <Line
+            label="Selected options"
+            value={formatSelectedServiceOptions(state.selectedServiceOptions)}
+            subtle
+          />
+        )}
+
+        {state.baseServicePrice !== state.servicePrice && (
+          <Line label="Base service price" value={state.baseServicePrice} subtle />
+        )}
 
         {state.hairColorValue && state.hairColorCategory && (
           <Line

@@ -112,8 +112,11 @@ export default function StepTier({ state, update, onNext, onBack }: Props) {
         </div>
         {state.servicePriceCents > 0 && (
           <p className="text-white/40 text-xs pt-1 leading-relaxed">
-            Service ({state.servicePrice}) is optional at booking — choose to pay now or at your
-            appointment on the Payment step.
+            Service ({state.servicePrice}
+            {state.baseServicePrice !== state.servicePrice
+              ? ` · base ${state.baseServicePrice}`
+              : ""}
+            ) is optional at booking — choose to pay now or at your appointment on the Payment step.
           </p>
         )}
       </div>

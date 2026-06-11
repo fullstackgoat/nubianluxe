@@ -5,6 +5,7 @@ import type { BookingState } from "./BookingWizard";
 import Link from "next/link";
 import { CheckCircle, Calendar, Clock, Phone, Palette } from "lucide-react";
 import { formatHairColorSelection } from "@/lib/hair-colors";
+import { formatSelectedServiceOptions } from "@/lib/price-list-bullets";
 
 interface Props {
   state: BookingState;
@@ -56,7 +57,13 @@ export default function StepConfirmation({ state }: Props) {
         </p>
         <div className="space-y-3">
           {[
-            { icon: CheckCircle, label: state.service },
+            { icon: CheckCircle, label: `${state.service} · ${state.servicePrice}` },
+            ...(state.selectedServiceOptions.length > 0
+              ? [{
+                  icon: CheckCircle,
+                  label: formatSelectedServiceOptions(state.selectedServiceOptions),
+                }]
+              : []),
             ...(state.hairColorValue && state.hairColorCategory
               ? [{
                   icon: Palette,

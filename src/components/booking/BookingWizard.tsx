@@ -14,9 +14,12 @@ import SlotHoldTimer from "./SlotHoldTimer";
 import { TIERS } from "@/lib/booking-data";
 import {
   findBookingService,
+  buildBookingServicePricing,
+  parseBulletIndicesFromParam,
   type BookingCatalogCategory,
 } from "@/lib/booking-services";
 import { parseServicePriceCents } from "@/lib/booking-data";
+import type { SelectedServiceOption } from "@/lib/price-list-bullets";
 import { getHairColorRequirement } from "@/lib/hair-colors";
 import { getBookingSessionId } from "@/lib/booking-session";
 import { getActiveSlotHold, releaseSlotHold } from "@/app/actions/booking";
@@ -31,6 +34,12 @@ export type BookingState = {
   duration: number;
   servicePrice: string;
   servicePriceCents: number;
+  baseServicePrice: string;
+  baseServicePriceCents: number;
+  baseDuration: number;
+  serviceBulletPoints: import("@/lib/price-list-bullets").PriceListBulletPoint[];
+  selectedBulletIndices: number[];
+  selectedServiceOptions: SelectedServiceOption[];
   stripeProductId: string | null;
   stripePriceId: string | null;
   hairColorCategory: string;
@@ -70,6 +79,7 @@ function buildInitialState(
   catalog: BookingCatalogCategory[],
   tierFromUrl: string | null,
   serviceIdFromUrl: string | null,
+  bulletIndicesFromUrl: number[],
   bookingSessionId: string
 ): BookingState {
   const upper = tierFromUrl?.toUpperCase() ?? "";
@@ -79,6 +89,19 @@ function buildInitialState(
   const tierFee = TIERS.find((t) => t.id === tier)?.fee ?? 0;
 
   const match = findBookingService(catalog, serviceIdFromUrl);
+  const serviceFields = match
+    ? buildBookingServicePricing(match.service, bulletIndicesFromUrl)
+    : {
+        baseServicePrice: "",
+        baseServicePriceCents: 0,
+        baseDuration: 0,
+        serviceBulletPoints: [] as import("@/lib/price-list-bullets").PriceListBulletPoint[],
+        selectedBulletIndices: [] as number[],
+        selectedServiceOptions: [] as SelectedServiceOption[],
+        servicePrice: "",
+        servicePriceCents: 0,
+        duration: 0,
+      };
 
   return {
     bookingSessionId,
@@ -87,9 +110,7 @@ function buildInitialState(
     serviceCategoryId: match?.category.id ?? catalog[0]?.id ?? "",
     serviceCategory: match?.category.category ?? catalog[0]?.category ?? "",
     service: match?.service.name ?? "",
-    duration: match?.service.duration ?? 0,
-    servicePrice: match?.service.price ?? "",
-    servicePriceCents: match?.service.price ? parseServicePriceCents(match.service.price) : 0,
+    ...serviceFields,
     stripeProductId: match?.service.stripeProductId ?? null,
     stripePriceId: match?.service.stripePriceId ?? null,
     hairColorCategory: "",
@@ -122,9 +143,10 @@ function buildWizardSteps(state: BookingState): WizardStep[] {
 function getInitialStepIndex(
   catalog: BookingCatalogCategory[],
   tierFromUrl: string | null,
-  serviceIdFromUrl: string | null
+  serviceIdFromUrl: string | null,
+  bulletIndicesFromUrl: number[]
 ): number {
-  const state = buildInitialState(catalog, tierFromUrl, serviceIdFromUrl, "");
+  const state = buildInitialState(catalog, tierFromUrl, serviceIdFromUrl, bulletIndicesFromUrl, "");
   const steps = buildWizardSteps(state);
   if (!serviceIdFromUrl) return 0;
 
@@ -150,11 +172,17 @@ export default function BookingWizard({
       catalog,
       searchParams.get("tier"),
       searchParams.get("serviceId"),
+      parseBulletIndicesFromParam(searchParams.get("bullets")),
       sessionId
     )
   );
   const [stepIndex, setStepIndex] = useState(() =>
-    getInitialStepIndex(catalog, searchParams.get("tier"), searchParams.get("serviceId"))
+    getInitialStepIndex(
+      catalog,
+      searchParams.get("tier"),
+      searchParams.get("serviceId"),
+      parseBulletIndicesFromParam(searchParams.get("bullets"))
+    )
   );
   const [holdExpiredMessage, setHoldExpiredMessage] = useState("");
 

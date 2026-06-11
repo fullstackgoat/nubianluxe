@@ -1,10 +1,14 @@
-const COOLDOWN_MS = 60_000;
-let dbDownUntil = 0;
+let consecutiveFailures = 0;
 
 export function markDbUnavailable() {
-  dbDownUntil = Date.now() + COOLDOWN_MS;
+  consecutiveFailures += 1;
 }
 
+export function markDbAvailable() {
+  consecutiveFailures = 0;
+}
+
+/** Only skip DB after repeated failures in the same process. */
 export function shouldSkipDb(): boolean {
-  return Date.now() < dbDownUntil;
+  return consecutiveFailures >= 3;
 }

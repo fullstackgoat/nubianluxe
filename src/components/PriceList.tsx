@@ -6,8 +6,12 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
 import { getBookingUrlForService } from "@/lib/booking-services";
+import { parseServicePriceCents } from "@/lib/booking-data";
 import {
+  computeServiceSelectionTotals,
+  formatBulletCostDisplay,
   formatBulletPointMeta,
+  getPricedBulletIndices,
   normalizeBulletPointsForSave,
 } from "@/lib/price-list-bullets";
 
@@ -17,6 +21,28 @@ function ServiceCard({
   service: PriceListCategoryWithServices["services"][number];
 }) {
   const bullets = normalizeBulletPointsForSave(service.bulletPoints);
+  const pricedIndices = getPricedBulletIndices(service.bulletPoints);
+  const [selectedBulletIndices, setSelectedBulletIndices] = useState<number[]>([]);
+
+  const pricing = computeServiceSelectionTotals({
+    basePriceCents: parseServicePriceCents(service.price),
+    basePriceLabel: service.price,
+    baseDuration: service.duration,
+    bulletPoints: service.bulletPoints,
+    selectedIndices: selectedBulletIndices,
+  });
+
+  const requiresSelection = pricedIndices.length > 0;
+  const hasSelection = selectedBulletIndices.some((index) => pricedIndices.includes(index));
+  const canBook = !requiresSelection || hasSelection;
+
+  const toggleOption = (index: number) => {
+    setSelectedBulletIndices((current) =>
+      current.includes(index) ? [] : [index]
+    );
+  };
+
+  const informationalBullets = bullets.filter((_, index) => !pricedIndices.includes(index));
 
   return (
     <motion.div
@@ -33,13 +59,16 @@ function ServiceCard({
         >
           {service.title}
         </h4>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex flex-col items-end shrink-0">
           <span
             className="text-xl font-semibold text-[var(--color-gold)]"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            {service.price}
+            {pricing.servicePriceLabel}
           </span>
+          {pricing.servicePriceLabel !== service.price && (
+            <span className="text-white/25 text-[0.65rem]">base {service.price}</span>
+          )}
         </div>
       </div>
 
@@ -47,21 +76,19 @@ function ServiceCard({
         <p className="text-white/40 text-xs leading-relaxed">{service.description}</p>
       )}
 
-      {bullets.length > 0 && (
+      {informationalBullets.length > 0 && (
         <ul className="space-y-1">
-          {bullets.map((point, index) => {
+          {informationalBullets.map((point, index) => {
             const meta = formatBulletPointMeta(point);
             return (
               <li
-                key={`${service.id}-${index}`}
+                key={`${service.id}-info-${index}`}
                 className="text-white/40 text-xs leading-relaxed flex gap-2"
               >
                 <span className="text-[var(--color-gold-dark)] shrink-0">•</span>
                 <span>
                   {point.label}
-                  {meta ? (
-                    <span className="text-white/25"> — {meta}</span>
-                  ) : null}
+                  {meta ? <span className="text-white/25"> — {meta}</span> : null}
                 </span>
               </li>
             );
@@ -69,13 +96,64 @@ function ServiceCard({
         </ul>
       )}
 
-      <Link
-        href={getBookingUrlForService(service.id)}
-        className="flex items-center gap-1.5 text-[var(--color-gold-dark)] text-xs tracking-[0.15em] uppercase group-hover:text-[var(--color-gold)] transition-colors duration-300 mt-auto"
-      >
-        <span>Book This Style</span>
-        <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-      </Link>
+      {pricedIndices.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[0.6rem] tracking-[0.2em] uppercase text-[var(--color-gold-dark)]">
+            Add-on options
+          </p>
+          {pricedIndices.map((index) => {
+            const point = bullets[index];
+            if (!point) return null;
+
+            const isChecked = selectedBulletIndices.includes(index);
+            const meta = formatBulletPointMeta(point);
+            const addOnLabel = formatBulletCostDisplay(point.cost);
+
+            return (
+              <label
+                key={`${service.id}-option-${index}`}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-300 ${
+                  isChecked
+                    ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
+                    : "border-white/10 hover:border-white/25 bg-[rgba(255,255,255,0.02)]"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleOption(index)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-gold)] cursor-pointer"
+                />
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-white/80 text-xs capitalize">{point.label}</span>
+                    {addOnLabel && (
+                      <span className="text-[var(--color-gold)] text-xs font-semibold shrink-0">
+                        {addOnLabel}
+                      </span>
+                    )}
+                  </span>
+                  {meta && <span className="text-white/30 text-[0.65rem] block mt-1">{meta}</span>}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+
+      {canBook ? (
+        <Link
+          href={getBookingUrlForService(service.id, selectedBulletIndices)}
+          className="flex items-center gap-1.5 text-[var(--color-gold-dark)] text-xs tracking-[0.15em] uppercase group-hover:text-[var(--color-gold)] transition-colors duration-300 mt-auto"
+        >
+          <span>Book This Style</span>
+          <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+        </Link>
+      ) : (
+        <p className="text-white/30 text-xs tracking-[0.12em] uppercase mt-auto">
+          Select an add-on option to book
+        </p>
+      )}
     </motion.div>
   );
 }

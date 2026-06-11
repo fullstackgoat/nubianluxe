@@ -6,6 +6,8 @@ import { toBookingCatalog } from "@/lib/booking-services";
 import { getBlockedDates } from "@/app/actions/booking";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Book Your Appointment",
   description:
