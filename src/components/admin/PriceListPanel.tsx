@@ -4,7 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
-import { createPriceListService, updatePriceListService } from "@/app/actions/admin";
+import {
+  createPriceListService,
+  resyncStripeCatalog,
+  updatePriceListService,
+} from "@/app/actions/admin";
 
 type EditableService = {
   title: string;
@@ -186,6 +190,7 @@ export default function PriceListPanel({
   });
   const [savedId, setSavedId] = useState<string | null>(null);
   const [createdMessage, setCreatedMessage] = useState("");
+  const [syncMessage, setSyncMessage] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -235,6 +240,42 @@ export default function PriceListPanel({
     });
   }
 
+  function handleResyncStripe() {
+    if (
+      !window.confirm(
+        "Re-sync all price list services to Stripe for the current mode (live on production)? Existing Stripe product links will be replaced."
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setSyncMessage("");
+    setCreatedMessage("");
+    startTransition(async () => {
+      try {
+        let offset = 0;
+        let totalSynced = 0;
+        let mode = "LIVE";
+
+        while (true) {
+          const result = await resyncStripeCatalog({ offset, limit: 4 });
+          mode = result.mode;
+          totalSynced += result.synced;
+          if (result.done || result.nextOffset === null) break;
+          offset = result.nextOffset;
+        }
+
+        setSyncMessage(
+          `Stripe ${mode} sync complete — ${totalSynced} service${totalSynced === 1 ? "" : "s"} linked.`
+        );
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to sync Stripe catalog.");
+      }
+    });
+  }
+
   function handleCreate() {
     if (!activeCategory) return;
 
@@ -276,10 +317,20 @@ export default function PriceListPanel({
 
   return (
     <div className="max-w-4xl">
-      <p className="font-body text-ivory/40 text-sm mb-6">
-        Manage services on the Price List. Add new services with automatic Stripe product creation,
-        or edit titles, prices, descriptions, and bullet points — changes go live immediately.
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <p className="font-body text-ivory/40 text-sm">
+          Manage services on the Price List. Add new services with automatic Stripe product creation,
+          or edit titles, prices, descriptions, and bullet points — changes go live immediately.
+        </p>
+        <button
+          type="button"
+          onClick={handleResyncStripe}
+          disabled={isPending}
+          className="shrink-0 font-body text-xs tracking-widest uppercase text-ivory/50 border border-[rgba(201,168,76,0.2)] px-4 py-2.5 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-50"
+        >
+          {isPending ? "Syncing…" : "Re-sync Stripe Catalog"}
+        </button>
+      </div>
 
       {error && (
         <div className="glass-card px-4 py-3 mb-4 border-red-500/20">
@@ -290,6 +341,12 @@ export default function PriceListPanel({
       {createdMessage && (
         <div className="glass-card px-4 py-3 mb-4 border-emerald-500/20">
           <p className="text-emerald-400 font-body text-sm">{createdMessage}</p>
+        </div>
+      )}
+
+      {syncMessage && (
+        <div className="glass-card px-4 py-3 mb-4 border-emerald-500/20">
+          <p className="text-emerald-400 font-body text-sm">{syncMessage}</p>
         </div>
       )}
 

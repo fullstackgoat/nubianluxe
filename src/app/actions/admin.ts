@@ -13,6 +13,7 @@ import {
   validateCatalogPrice,
 } from "@/lib/stripe-catalog";
 import { isAdminConfigured, isAdminUser } from "@/lib/admin-auth";
+import { resyncAllPriceListServices } from "@/lib/sync-stripe-catalog";
 
 // Mirrors src/app/admin/page.tsx — admin if userId or email is on the allowlist.
 async function assertAdmin() {
@@ -280,4 +281,24 @@ export async function createPriceListService(
   revalidatePath("/book");
 
   return { id: service.id };
+}
+
+export async function resyncStripeCatalog(options?: { offset?: number; limit?: number }) {
+  await assertAdmin();
+
+  const offset = options?.offset ?? 0;
+  const limit = options?.limit ?? 4;
+  const result = await resyncAllPriceListServices({
+    force: offset === 0,
+    offset,
+    limit,
+  });
+
+  if (result.done) {
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/book");
+  }
+
+  return result;
 }
