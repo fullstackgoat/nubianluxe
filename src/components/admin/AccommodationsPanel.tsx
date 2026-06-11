@@ -54,16 +54,16 @@ export default function AccommodationsPanel({
 
     setError("");
     startTransition(async () => {
-      try {
-        await updateAccommodation(id, {
-          title: draft.title,
-          bulletPoints: draft.bulletPoints,
-        });
-        setSavedId(id);
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to save accommodation.");
+      const result = await updateAccommodation(id, {
+        title: draft.title,
+        bulletPoints: draft.bulletPoints,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      setSavedId(id);
+      router.refresh();
     });
   }
 

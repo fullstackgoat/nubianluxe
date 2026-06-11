@@ -303,19 +303,22 @@ export default function PriceListPanel({
 
     setError("");
     startTransition(async () => {
-      try {
-        await updatePriceListService(id, {
-          title: draft.title,
-          price: draft.price,
-          description: draft.description,
-          duration: draft.duration,
-          bulletPoints: draft.bulletPoints,
-        });
-        setSavedId(id);
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to save service.");
+      const result = await updatePriceListService(id, {
+        title: draft.title,
+        price: draft.price,
+        description: draft.description,
+        duration: draft.duration,
+        bulletPoints: draft.bulletPoints,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      if (result.warning) {
+        setSyncMessage(result.warning);
+      }
+      setSavedId(id);
+      router.refresh();
     });
   }
 
@@ -383,19 +386,23 @@ export default function PriceListPanel({
     setCreatedMessage("");
     setSyncMessage("");
     startTransition(async () => {
-      try {
-        await deletePriceListService(id);
-        setExpandedId(null);
-        setDrafts((current) => {
-          const next = { ...current };
-          delete next[id];
-          return next;
-        });
-        setCreatedMessage(`"${title}" deleted.`);
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to delete service.");
+      const result = await deletePriceListService(id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      setExpandedId(null);
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      setCreatedMessage(
+        result.warning
+          ? `"${result.title}" deleted. ${result.warning}`
+          : `"${result.title}" deleted.`
+      );
+      router.refresh();
     });
   }
 

@@ -22,6 +22,10 @@ import {
 } from "@/lib/price-list-bullets";
 import { persistBulletPoints } from "@/lib/price-list-db";
 
+export type AdminActionResult =
+  | { ok: true; warning?: string }
+  | { ok: false; error: string };
+
 // Mirrors src/app/admin/page.tsx — admin if userId or email is on the allowlist.
 async function assertAdmin() {
   const { userId } = await auth();
@@ -140,23 +144,31 @@ export async function removeBlockedDate(id: string) {
 export async function updateAccommodation(
   id: string,
   data: { title: string; bulletPoints: string[] }
-) {
-  await assertAdmin();
+): Promise<AdminActionResult> {
+  try {
+    await assertAdmin();
 
-  const title = data.title.trim();
-  if (!title) throw new Error("Title is required");
+    const title = data.title.trim();
+    if (!title) return { ok: false, error: "Title is required" };
 
-  const bulletPoints = data.bulletPoints
-    .map((point) => point.trim())
-    .filter(Boolean);
+    const bulletPoints = data.bulletPoints
+      .map((point) => point.trim())
+      .filter(Boolean);
 
-  await prisma.accommodation.update({
-    where: { id },
-    data: { title, bulletPoints },
-  });
+    await prisma.accommodation.update({
+      where: { id },
+      data: { title, bulletPoints },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to save accommodation.",
+    };
+  }
 }
 
 export async function updatePriceListService(
@@ -168,65 +180,87 @@ export async function updatePriceListService(
     price?: string;
     duration?: number;
   }
-) {
-  await assertAdmin();
+): Promise<AdminActionResult> {
+  try {
+    await assertAdmin();
 
-  const existing = await prisma.priceListService.findUnique({
-    where: { id },
-    include: { category: true },
-  });
-  if (!existing) throw new Error("Service not found");
-
-  const title = data.title.trim();
-  const description = data.description.trim();
-  if (!title) throw new Error("Title is required");
-
-  const nextPrice = data.price?.trim() ?? existing.price;
-  if (data.price !== undefined) {
-    validateCatalogPrice(nextPrice);
-  }
-
-  const nextDuration =
-    data.duration !== undefined && data.duration > 0
-      ? data.duration
-      : existing.duration;
-
-  let stripePriceId = existing.stripePriceId;
-
-  if (nextPrice !== existing.price && existing.stripeProductId) {
-    stripePriceId = await createStripePriceForProduct(existing.stripeProductId, {
-      serviceId: id,
-      price: nextPrice,
+    const existing = await prisma.priceListService.findUnique({
+      where: { id },
+      include: { category: true },
     });
-    if (existing.stripePriceId) {
-      await archiveStripePrice(existing.stripePriceId);
+    if (!existing) return { ok: false, error: "Service not found" };
+
+    const title = data.title.trim();
+    const description = data.description.trim();
+    if (!title) return { ok: false, error: "Title is required" };
+
+    const nextPrice = data.price?.trim() ?? existing.price;
+    if (data.price !== undefined) {
+      validateCatalogPrice(nextPrice);
     }
-  }
 
-  if (existing.stripeProductId) {
-    await updateStripeProductDetails(existing.stripeProductId, {
-      name: `${existing.category.title} — ${title}`,
-      description,
-      catalogPrice: nextPrice,
-      title,
+    const nextDuration =
+      data.duration !== undefined && data.duration > 0
+        ? data.duration
+        : existing.duration;
+
+    await prisma.priceListService.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        price: nextPrice,
+        duration: nextDuration,
+      },
     });
+    await persistBulletPoints(id, data.bulletPoints);
+
+    let warning: string | undefined;
+
+    if (existing.stripeProductId) {
+      try {
+        let stripePriceId = existing.stripePriceId;
+
+        if (nextPrice !== existing.price) {
+          stripePriceId = await createStripePriceForProduct(existing.stripeProductId, {
+            serviceId: id,
+            price: nextPrice,
+          });
+          if (existing.stripePriceId) {
+            await archiveStripePrice(existing.stripePriceId);
+          }
+        }
+
+        await updateStripeProductDetails(existing.stripeProductId, {
+          name: `${existing.category.title} — ${title}`,
+          description,
+          catalogPrice: nextPrice,
+          title,
+        });
+
+        if (stripePriceId !== existing.stripePriceId) {
+          await prisma.priceListService.update({
+            where: { id },
+            data: { stripePriceId },
+          });
+        }
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : "Stripe update failed";
+        warning = `Saved on site, but Stripe was not updated (${detail}). Run Re-sync Stripe Catalog if needed.`;
+      }
+    }
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/book");
+
+    return warning ? { ok: true, warning } : { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to save service.",
+    };
   }
-
-  await prisma.priceListService.update({
-    where: { id },
-    data: {
-      title,
-      description,
-      price: nextPrice,
-      duration: nextDuration,
-      ...(stripePriceId !== existing.stripePriceId && { stripePriceId }),
-    },
-  });
-  await persistBulletPoints(id, data.bulletPoints);
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/book");
 }
 
 export async function createPriceListService(
@@ -316,34 +350,52 @@ export async function createPriceListService(
   return { id: service.id, stripeLinked };
 }
 
-export async function deletePriceListService(id: string) {
-  await assertAdmin();
+export async function deletePriceListService(
+  id: string
+): Promise<AdminActionResult & { title?: string }> {
+  try {
+    await assertAdmin();
 
-  const existing = await prisma.priceListService.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-      stripeProductId: true,
-      stripePriceId: true,
-    },
-  });
-  if (!existing) throw new Error("Service not found");
+    const existing = await prisma.priceListService.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        stripeProductId: true,
+        stripePriceId: true,
+      },
+    });
+    if (!existing) return { ok: false, error: "Service not found" };
 
-  if (existing.stripeProductId) {
-    await archiveStripeCatalogEntry(
-      existing.stripeProductId,
-      existing.stripePriceId
-    );
+    let warning: string | undefined;
+
+    if (existing.stripeProductId) {
+      try {
+        await archiveStripeCatalogEntry(
+          existing.stripeProductId,
+          existing.stripePriceId
+        );
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : "Stripe archive failed";
+        warning = `Removed from site, but Stripe archive failed (${detail}).`;
+      }
+    }
+
+    await prisma.priceListService.delete({ where: { id } });
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/book");
+
+    return warning
+      ? { ok: true, title: existing.title, warning }
+      : { ok: true, title: existing.title };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to delete service.",
+    };
   }
-
-  await prisma.priceListService.delete({ where: { id } });
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/book");
-
-  return { title: existing.title };
 }
 
 export async function resyncStripeCatalog(options?: { offset?: number; limit?: number }) {
