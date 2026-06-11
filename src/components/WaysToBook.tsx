@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { ArrowUpRight, Clock, CalendarCheck, Shield, FileDown } from "lucide-react";
 
-/** Upload your PDF to public/downloads/parting-size-guide.pdf */
 const PARTING_SIZE_GUIDE_PDF = "/downloads/parting-size-guide.pdf";
 
 const tiers = [
