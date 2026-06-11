@@ -57,12 +57,13 @@ model BlockedDate {
 }
 
 model SlotHold {
-  id        String   @id @default(cuid())
-  sessionId String
-  date      DateTime @db.Date
-  timeSlot  String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  sessionId        String
+  date             DateTime @db.Date
+  timeSlot         String
+  durationMinutes  Int      @default(120)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
 
   @@unique([date, timeSlot])
   @@index([sessionId])

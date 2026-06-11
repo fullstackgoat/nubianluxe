@@ -13,11 +13,16 @@ import { z } from "zod";
 import { parseDateInput, toDateKey } from "@/lib/dates";
 import { getHairColorRequirement } from "@/lib/hair-colors";
 import {
-  dateToTimeSlot,
   slotToTime,
   SLOT_HOLD_MS,
 } from "@/lib/slot-utils";
-import { parseServicePriceCents } from "@/lib/booking-data";
+import { parseServicePriceCents, TIER_SLOTS, type TierId } from "@/lib/booking-data";
+import {
+  appointmentDateToInterval,
+  classifySlots,
+  getIntervalForSlot,
+  type TimeInterval,
+} from "@/lib/slot-availability";
 import {
   computeServiceSelectionTotals,
   formatSelectedServiceOptions,
@@ -81,6 +86,7 @@ async function getAppointmentsForDay(date: string) {
     },
     select: {
       date: true,
+      duration: true,
       status: true,
       depositPaid: true,
       bookingSessionId: true,
@@ -100,13 +106,16 @@ function isOwnPendingHold(
   );
 }
 
-async function getUnavailableSlots(date: string, sessionId?: string): Promise<string[]> {
+async function getOccupiedIntervalsForDay(
+  date: string,
+  sessionId?: string
+): Promise<TimeInterval[]> {
   await cleanupExpiredHolds();
 
   const appointments = await getAppointmentsForDay(date);
-  const takenByAppointments = appointments
+  const appointmentIntervals = appointments
     .filter((appt) => !isOwnPendingHold(appt, sessionId))
-    .map((appt) => dateToTimeSlot(appt.date));
+    .map((appt) => appointmentDateToInterval(appt.date, appt.duration));
 
   const { day } = dayBounds(date);
   const holds = await prisma.slotHold.findMany({
@@ -115,11 +124,62 @@ async function getUnavailableSlots(date: string, sessionId?: string): Promise<st
       expiresAt: { gt: new Date() },
       ...(sessionId ? { NOT: { sessionId } } : {}),
     },
-    select: { timeSlot: true },
+    select: { timeSlot: true, durationMinutes: true },
   });
 
-  const takenByOthers = holds.map((hold) => hold.timeSlot);
-  return [...new Set([...takenByAppointments, ...takenByOthers])];
+  const holdIntervals = holds.map((hold) =>
+    getIntervalForSlot(hold.timeSlot, hold.durationMinutes)
+  );
+
+  return [...appointmentIntervals, ...holdIntervals];
+}
+
+async function getDaySlotAvailability(
+  date: string,
+  requestDurationMinutes: number,
+  tier: TierId,
+  sessionId?: string
+) {
+  const tierConfig = TIER_SLOTS[tier];
+  const tierSlots = getTierSlotsForDate(date, tier);
+  const occupiedIntervals = await getOccupiedIntervalsForDay(date, sessionId);
+
+  return classifySlots({
+    tierSlots,
+    tierEndHour: tierConfig.endHour,
+    requestDurationMinutes,
+    occupiedIntervals,
+  });
+}
+
+function getTierSlotsForDate(date: string, tier: TierId): string[] {
+  const day = parseDateInput(date);
+  const config = TIER_SLOTS[tier];
+  if (!config.days.includes(day.getDay())) return [];
+
+  const slots: string[] = [];
+  for (let h = config.startHour; h < config.endHour; h += 2) {
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "AM" : "PM";
+    slots.push(`${hour}:00 ${ampm}`);
+  }
+  return slots;
+}
+
+async function isSlotAvailableForBooking(
+  date: string,
+  timeSlot: string,
+  requestDurationMinutes: number,
+  tier: TierId,
+  sessionId?: string
+) {
+  const availability = await getDaySlotAvailability(
+    date,
+    requestDurationMinutes,
+    tier,
+    sessionId
+  );
+  return availability.available.includes(timeSlot);
 }
 
 async function validateActiveHold(
@@ -148,17 +208,30 @@ async function validateActiveHold(
 export async function reserveSlotHold(
   sessionId: string,
   date: string,
-  timeSlot: string
+  timeSlot: string,
+  durationMinutes: number,
+  tier: TierId
 ): Promise<{ expiresAt: string } | { error: string }> {
   if (!sessionId?.trim()) {
     return { error: "Invalid booking session." };
   }
 
+  if (!Number.isFinite(durationMinutes) || durationMinutes < 15) {
+    return { error: "Invalid service duration." };
+  }
+
   await cleanupExpiredHolds();
   const { day } = dayBounds(date);
 
-  const unavailable = await getUnavailableSlots(date, sessionId);
-  if (unavailable.includes(timeSlot)) {
+  const available = await isSlotAvailableForBooking(
+    date,
+    timeSlot,
+    durationMinutes,
+    tier,
+    sessionId
+  );
+
+  if (!available) {
     return { error: "That time slot is no longer available. Please choose another time." };
   }
 
@@ -175,8 +248,8 @@ export async function reserveSlotHold(
   const expiresAt = new Date(Date.now() + SLOT_HOLD_MS);
   const hold = await prisma.slotHold.upsert({
     where: { date_timeSlot: { date: day, timeSlot } },
-    create: { sessionId, date: day, timeSlot, expiresAt },
-    update: { sessionId, expiresAt },
+    create: { sessionId, date: day, timeSlot, durationMinutes, expiresAt },
+    update: { sessionId, durationMinutes, expiresAt },
   });
 
   return { expiresAt: hold.expiresAt.toISOString() };
@@ -260,8 +333,14 @@ export async function createBookingIntent(input: BookingInput) {
     return { error: "This date is unavailable. Please choose another day." };
   }
 
-  const unavailable = await getUnavailableSlots(date, bookingSessionId);
-  if (unavailable.includes(timeSlot)) {
+  const slotStillAvailable = await isSlotAvailableForBooking(
+    date,
+    timeSlot,
+    parsed.data.duration,
+    tier,
+    bookingSessionId
+  );
+  if (!slotStillAvailable) {
     return { error: "That time slot is no longer available. Please choose another time." };
   }
 
@@ -424,11 +503,29 @@ export async function getBlockedDates(): Promise<string[]> {
   return rows.map((row) => toDateKey(row.date));
 }
 
+export async function getDaySlotAvailabilityForBooking(
+  date: string,
+  requestDurationMinutes: number,
+  tier: TierId,
+  sessionId?: string
+) {
+  return getDaySlotAvailability(date, requestDurationMinutes, tier, sessionId);
+}
+
+/** @deprecated Use getDaySlotAvailabilityForBooking */
 export async function getBookedSlots(
   date: string,
-  sessionId?: string
-): Promise<string[]> {
-  return getUnavailableSlots(date, sessionId);
+  sessionId?: string,
+  requestDurationMinutes = 120,
+  tier: TierId = "REGULAR"
+) {
+  const availability = await getDaySlotAvailability(
+    date,
+    requestDurationMinutes,
+    tier,
+    sessionId
+  );
+  return [...availability.occupied, ...availability.blocked];
 }
 
 export async function confirmBooking(appointmentId: string) {

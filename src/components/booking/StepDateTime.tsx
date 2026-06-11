@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { getAvailableSlots } from "@/lib/booking-data";
-import { getBookedSlots, reserveSlotHold, releaseSlotHold } from "@/app/actions/booking";
+import {
+  getDaySlotAvailabilityForBooking,
+  reserveSlotHold,
+  releaseSlotHold,
+} from "@/app/actions/booking";
 import { toLocalDateKey } from "@/lib/dates";
 import type { BookingState } from "./BookingWizard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -32,6 +36,30 @@ const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 const ADVANCE_DAYS: Record<string, number> = { REGULAR: 7, PREMIUM: 5, VIP: 3 };
 
+type SlotAvailabilityState = {
+  available: string[];
+  occupied: string[];
+  blocked: string[];
+};
+
+const EMPTY_AVAILABILITY: SlotAvailabilityState = {
+  available: [],
+  occupied: [],
+  blocked: [],
+};
+
+function formatDurationLabel(minutes: number): string {
+  if (minutes >= 60 && minutes % 60 === 0) {
+    return `${minutes / 60}h`;
+  }
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  }
+  return `${minutes}m`;
+}
+
 export default function StepDateTime({
   state,
   update,
@@ -47,7 +75,8 @@ export default function StepDateTime({
     state.date ? new Date(state.date + "T12:00:00") : null
   );
   const [selectedSlot, setSelectedSlot] = useState(state.timeSlot);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [slotAvailability, setSlotAvailability] =
+    useState<SlotAvailabilityState>(EMPTY_AVAILABILITY);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotError, setSlotError] = useState("");
   const [reservingSlot, setReservingSlot] = useState(false);
@@ -58,25 +87,27 @@ export default function StepDateTime({
   const monthEnd = endOfMonth(viewMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startPad = monthStart.getDay();
+  const tier = state.tier as "REGULAR" | "PREMIUM" | "VIP";
 
   useEffect(() => {
-    if (!selectedDate) {
-      setBookedSlots([]);
+    if (!selectedDate || state.duration <= 0) {
+      setSlotAvailability(EMPTY_AVAILABILITY);
       return;
     }
 
     const dateKey = toLocalDateKey(selectedDate);
     setLoadingSlots(true);
-    getBookedSlots(dateKey, state.bookingSessionId)
-      .then(setBookedSlots)
+    getDaySlotAvailabilityForBooking(
+      dateKey,
+      state.duration,
+      tier,
+      state.bookingSessionId
+    )
+      .then(setSlotAvailability)
       .finally(() => setLoadingSlots(false));
-  }, [selectedDate, state.bookingSessionId]);
+  }, [selectedDate, state.bookingSessionId, state.duration, tier]);
 
-  const tierSlots = selectedDate
-    ? getAvailableSlots(selectedDate, state.tier as "REGULAR" | "PREMIUM" | "VIP")
-    : [];
-
-  const slots = tierSlots.filter((slot) => !bookedSlots.includes(slot));
+  const tierSlots = selectedDate ? getAvailableSlots(selectedDate, tier) : [];
 
   const pickDate = async (day: Date) => {
     if (state.bookingSessionId && state.timeSlot) {
@@ -97,15 +128,26 @@ export default function StepDateTime({
     onHoldExpiredMessageClear?.();
 
     const dateKey = toLocalDateKey(selectedDate);
-    const result = await reserveSlotHold(state.bookingSessionId, dateKey, slot);
+    const result = await reserveSlotHold(
+      state.bookingSessionId,
+      dateKey,
+      slot,
+      state.duration,
+      tier
+    );
     setReservingSlot(false);
 
     if ("error" in result) {
       setSlotError(result.error);
       setSelectedSlot("");
       update({ timeSlot: "", slotHoldExpiresAt: "" });
-      const refreshed = await getBookedSlots(dateKey, state.bookingSessionId);
-      setBookedSlots(refreshed);
+      const refreshed = await getDaySlotAvailabilityForBooking(
+        dateKey,
+        state.duration,
+        tier,
+        state.bookingSessionId
+      );
+      setSlotAvailability(refreshed);
       return;
     }
 
@@ -126,7 +168,7 @@ export default function StepDateTime({
   function isDayUnavailable(day: Date) {
     if (isBefore(day, minDate)) return true;
     if (isDayBlocked(day)) return true;
-    const daySlots = getAvailableSlots(day, state.tier as "REGULAR" | "PREMIUM" | "VIP");
+    const daySlots = getAvailableSlots(day, tier);
     return daySlots.length === 0;
   }
 
@@ -147,6 +189,11 @@ export default function StepDateTime({
           tier. Minimum {ADVANCE_DAYS[state.tier]}-day advance notice required.
         </p>
         <p className="text-white/35 text-xs mt-2">
+          Your service runs about{" "}
+          <span className="text-white/55">{formatDurationLabel(state.duration)}</span>. Booked
+          times block the full duration so appointments never overlap.
+        </p>
+        <p className="text-white/35 text-xs mt-1">
           Once you select a time, it&apos;s held for you for 7 minutes while you complete checkout.
         </p>
       </div>
@@ -212,31 +259,64 @@ export default function StepDateTime({
 
       {selectedDate && (
         <div>
-          <p className="text-[0.65rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)] mb-3">
-            Available times — {format(selectedDate, "EEE, MMM d")}
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+            <p className="text-[0.65rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)]">
+              Available times — {format(selectedDate, "EEE, MMM d")}
+            </p>
+            <div className="flex flex-wrap gap-3 text-[0.6rem] tracking-[0.12em] uppercase text-white/35">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm border border-white/20 bg-transparent" />
+                Open
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm border border-red-400/30 bg-red-500/15" />
+                Booked
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm border border-white/10 bg-white/5" />
+                Unavailable
+              </span>
+            </div>
+          </div>
           {isDayBlocked(selectedDate) ? (
             <p className="text-white/40 text-sm">This date is blocked and unavailable for booking.</p>
           ) : loadingSlots ? (
             <p className="text-white/40 text-sm">Loading available times…</p>
-          ) : slots.length === 0 ? (
+          ) : tierSlots.length === 0 ? (
             <p className="text-white/40 text-sm">No availability on this date for your tier.</p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {slots.map((slot) => (
-                <button
-                  key={slot}
-                  disabled={reservingSlot}
-                  onClick={() => pickSlot(slot)}
-                  className={`py-3 rounded-lg text-sm border transition-all duration-200 ${
-                    selectedSlot === slot
-                      ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.1)] text-[var(--color-gold)]"
-                      : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
-                  } ${reservingSlot ? "opacity-60 cursor-wait" : ""}`}
-                >
-                  {slot}
-                </button>
-              ))}
+              {tierSlots.map((slot) => {
+                const isOccupied = slotAvailability.occupied.includes(slot);
+                const isAvailable = slotAvailability.available.includes(slot);
+                const isSelected = selectedSlot === slot;
+
+                return (
+                  <button
+                    key={slot}
+                    disabled={reservingSlot || !isAvailable}
+                    onClick={() => isAvailable && pickSlot(slot)}
+                    title={
+                      isOccupied
+                        ? "This time is already booked"
+                        : !isAvailable
+                          ? `Not enough open time for a ${formatDurationLabel(state.duration)} appointment`
+                          : undefined
+                    }
+                    className={`py-3 rounded-lg text-sm border transition-all duration-200 ${
+                      isSelected
+                        ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.15)] text-[var(--color-gold)]"
+                        : isOccupied
+                          ? "border-red-400/25 bg-red-500/10 text-red-200/70 cursor-not-allowed"
+                          : isAvailable
+                            ? "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
+                            : "border-white/8 bg-white/[0.02] text-white/20 cursor-not-allowed"
+                    } ${reservingSlot && isAvailable ? "opacity-60 cursor-wait" : ""}`}
+                  >
+                    {slot}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

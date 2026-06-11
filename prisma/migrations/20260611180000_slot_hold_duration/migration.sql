@@ -1,0 +1,2 @@
+ALTER TABLE "SlotHold"
+ADD COLUMN "durationMinutes" INTEGER NOT NULL DEFAULT 120;
