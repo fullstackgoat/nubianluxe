@@ -88,7 +88,7 @@ export default function PriceList({
   const [open, setOpen] = useState<string>(categories[0]?.id ?? "");
 
   return (
-    <section id="prices" className="relative py-28 bg-[var(--color-obsidian-soft)]">
+    <section id="services" className="relative py-28 bg-[var(--color-obsidian-soft)]">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
 
       <div className="section-container">

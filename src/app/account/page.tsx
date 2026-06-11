@@ -2,7 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
+import FooterShell from "@/components/FooterShell";
 import AccountDashboard from "@/components/account/AccountDashboard";
 import type { Metadata } from "next";
 
@@ -36,7 +36,7 @@ export default async function AccountPage() {
         }}
         appointments={appointments}
       />
-      <Footer />
+      <FooterShell />
     </main>
   );
 }

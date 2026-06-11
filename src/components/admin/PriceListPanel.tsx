@@ -6,6 +6,7 @@ import { Minus, Plus } from "lucide-react";
 import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
 import {
   createPriceListService,
+  deletePriceListService,
   resyncStripeCatalog,
   updatePriceListService,
 } from "@/app/actions/admin";
@@ -285,6 +286,9 @@ export default function PriceListPanel({
   function validateDraft(draft: EditableService) {
     if (!draft.title.trim()) return "Each service needs a title before saving.";
     if (!draft.price.trim()) return "Each service needs a price (e.g. $150+).";
+    if (!/\$[\d,]+/.test(draft.price.trim())) {
+      return 'Price must include a dollar amount (e.g. "$150+" or "$75").';
+    }
     if (draft.duration < 15) return "Duration must be at least 15 minutes.";
     return "";
   }
@@ -331,22 +335,66 @@ export default function PriceListPanel({
       try {
         let offset = 0;
         let totalSynced = 0;
+        let totalFailed = 0;
+        const failureMessages: string[] = [];
         let mode = "LIVE";
 
         while (true) {
           const result = await resyncStripeCatalog({ offset, limit: 4 });
           mode = result.mode;
           totalSynced += result.synced;
+          totalFailed += result.failed;
+          failureMessages.push(...result.errors.map((e) => `${e.title}: ${e.message}`));
           if (result.done || result.nextOffset === null) break;
           offset = result.nextOffset;
         }
 
-        setSyncMessage(
-          `Stripe ${mode} sync complete — ${totalSynced} service${totalSynced === 1 ? "" : "s"} linked.`
-        );
+        if (totalFailed > 0) {
+          setError(
+            `${totalFailed} service${totalFailed === 1 ? "" : "s"} failed to sync. ${failureMessages.slice(0, 3).join(" · ")}`
+          );
+        }
+
+        if (totalSynced > 0) {
+          setSyncMessage(
+            `Stripe ${mode} sync — ${totalSynced} service${totalSynced === 1 ? "" : "s"} linked${totalFailed > 0 ? `, ${totalFailed} failed` : ""}.`
+          );
+        } else if (totalFailed === 0) {
+          setSyncMessage(`Stripe ${mode} sync complete — all services already linked.`);
+        }
+
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to sync Stripe catalog.");
+      }
+    });
+  }
+
+  function handleDelete(id: string, title: string) {
+    if (
+      !window.confirm(
+        `Delete "${title}"? This removes it from the price list, footer, booking flow, and archives its Stripe product.`
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setCreatedMessage("");
+    setSyncMessage("");
+    startTransition(async () => {
+      try {
+        await deletePriceListService(id);
+        setExpandedId(null);
+        setDrafts((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+        setCreatedMessage(`"${title}" deleted.`);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete service.");
       }
     });
   }
@@ -373,7 +421,11 @@ export default function PriceListPanel({
         });
         setCreateDraft(EMPTY_DRAFT);
         setShowCreateForm(false);
-        setCreatedMessage(`"${title}" added to ${activeCategory.title} and synced to Stripe.`);
+        setCreatedMessage(
+          result.stripeLinked
+            ? `"${title}" added to ${activeCategory.title} and synced to Stripe.`
+            : `"${title}" added to ${activeCategory.title}. Stripe sync failed — use Re-sync Stripe Catalog.`
+        );
         setExpandedId(result.id);
         router.refresh();
       } catch (err) {
@@ -542,20 +594,30 @@ export default function PriceListPanel({
                       onChange={(updater) => updateDraft(service.id, updater)}
                     />
 
-                    <div className="flex items-center gap-4 pt-5 mt-5 border-t border-[rgba(201,168,76,0.1)]">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-5 mt-5 border-t border-[rgba(201,168,76,0.1)]">
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => handleSave(service.id)}
+                          disabled={isPending}
+                          className="btn-gold text-xs px-6 py-2.5 disabled:opacity-50"
+                        >
+                          {isPending ? "Saving…" : "Save Service"}
+                        </button>
+                        {isSaved && (
+                          <p className="font-body text-emerald-400 text-xs tracking-wide">
+                            Saved — homepage and Stripe updated
+                          </p>
+                        )}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => handleSave(service.id)}
+                        onClick={() => handleDelete(service.id, draft.title || service.title)}
                         disabled={isPending}
-                        className="btn-gold text-xs px-6 py-2.5 disabled:opacity-50"
+                        className="font-body text-xs tracking-widest uppercase border border-red-500/20 text-red-400 hover:bg-red-500/10 px-4 py-2.5 transition-colors disabled:opacity-50"
                       >
-                        {isPending ? "Saving…" : "Save Service"}
+                        Delete Service
                       </button>
-                      {isSaved && (
-                        <p className="font-body text-emerald-400 text-xs tracking-wide">
-                          Saved — homepage and Stripe updated
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
+import FooterShell from "@/components/FooterShell";
 
 interface Props {
   eyebrow: string;
@@ -54,7 +54,7 @@ export default function LegalLayout({ eyebrow, title, lastUpdated, children }: P
           </div>
         </div>
       </div>
-      <Footer />
+      <FooterShell />
     </main>
   );
 }

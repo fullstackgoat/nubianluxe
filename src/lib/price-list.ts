@@ -61,7 +61,6 @@ export async function getPriceListCategories(): Promise<PriceListCategoryWithSer
                 title: service.title,
                 price: service.price,
                 description: service.description,
-                bulletPoints: service.bulletPoints,
                 bookingUrl: service.bookingUrl,
                 duration: getServiceDuration(category.id, service.title),
                 sortOrder: index,

@@ -10,6 +10,7 @@ import AboutMe from "@/components/AboutMe";
 import BraidingHairColorChart from "@/components/BraidingHairColorChart";
 import PriceList from "@/components/PriceList";
 import Footer from "@/components/Footer";
+import { toFooterServices } from "@/lib/footer-services";
 
 export default async function Home() {
   const [accommodations, priceListCategories] = await Promise.all([
@@ -22,9 +23,7 @@ export default async function Home() {
       <Navigation />
       <HeroSection />
       <StatsStrip />
-      <section id="services">
-        <SignatureAccommodations accommodations={accommodations} />
-      </section>
+      <SignatureAccommodations accommodations={accommodations} />
       <section id="booking">
         <WaysToBook />
       </section>
@@ -37,10 +36,8 @@ export default async function Home() {
       <section id="colors">
         <BraidingHairColorChart />
       </section>
-      <section id="prices">
-        <PriceList categories={priceListCategories} />
-      </section>
-      <Footer />
+      <PriceList categories={priceListCategories} />
+      <Footer services={toFooterServices(priceListCategories)} />
     </main>
   );
 }

@@ -7,10 +7,12 @@ export type StripeCatalogSyncResult = {
   mode: "TEST" | "LIVE";
   synced: number;
   skipped: number;
+  failed: number;
   total: number;
   done: boolean;
   nextOffset: number | null;
   services: Array<{ title: string; productId: string; priceId: string }>;
+  errors: Array<{ title: string; message: string }>;
 };
 
 export async function resyncAllPriceListServices(
@@ -33,18 +35,23 @@ export async function resyncAllPriceListServices(
   }
 
   const batch = services.slice(offset, offset + limit);
+  const linked: StripeCatalogSyncResult["services"] = [];
+  const errors: StripeCatalogSyncResult["errors"] = [];
+  let skipped = 0;
 
-  const results = await Promise.all(
-    batch.map(async (service) => {
-      const duration = getServiceDuration(service.categoryId, service.title);
-      const bookingUrl = `/book?serviceId=${service.id}`;
+  for (const service of batch) {
+    const duration = getServiceDuration(service.categoryId, service.title);
+    const bookingUrl = `/book?serviceId=${service.id}`;
+    const label = `${service.category.title} — ${service.title}`;
 
+    try {
       if (!force && service.stripeProductId && service.stripePriceId) {
         await prisma.priceListService.update({
           where: { id: service.id },
           data: { duration, bookingUrl },
         });
-        return { status: "skipped" as const };
+        skipped += 1;
+        continue;
       }
 
       const stripe = await createStripeCatalogEntry({
@@ -66,29 +73,30 @@ export async function resyncAllPriceListServices(
         },
       });
 
-      return {
-        status: "synced" as const,
-        title: `${service.category.title} — ${service.title}`,
+      linked.push({
+        title: label,
         productId: stripe.productId,
         priceId: stripe.priceId,
-      };
-    })
-  );
+      });
+    } catch (err) {
+      errors.push({
+        title: label,
+        message: err instanceof Error ? err.message : "Stripe sync failed",
+      });
+    }
+  }
 
-  const linked = results
-    .filter((result) => result.status === "synced")
-    .map(({ title, productId, priceId }) => ({ title, productId, priceId }));
-  const synced = linked.length;
-  const skipped = results.filter((result) => result.status === "skipped").length;
   const nextOffset = offset + limit < services.length ? offset + limit : null;
 
   return {
     mode,
-    synced,
+    synced: linked.length,
     skipped,
+    failed: errors.length,
     total: services.length,
     done: nextOffset === null,
     nextOffset,
     services: linked,
+    errors,
   };
 }

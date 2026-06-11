@@ -10,6 +10,23 @@ export const EMPTY_BULLET_POINT: PriceListBulletPoint = {
   cost: null,
 };
 
+/** Coerce server-action / form input into bullet points safe for Postgres jsonb. */
+export function bulletPointsToDbValue(input: unknown): PriceListBulletPoint[] {
+  if (typeof input === "string") {
+    try {
+      return normalizeBulletPointsForSave(parseBulletPoints(JSON.parse(input)));
+    } catch {
+      return [];
+    }
+  }
+
+  if (Array.isArray(input)) {
+    return normalizeBulletPointsForSave(parseBulletPoints(input));
+  }
+
+  return [];
+}
+
 export function parseBulletPoints(raw: unknown): PriceListBulletPoint[] {
   if (!Array.isArray(raw)) return [];
 

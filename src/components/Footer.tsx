@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { Phone, MapPin, Clock, ArrowUpRight } from "lucide-react";
+import type { FooterServiceLink } from "@/lib/footer-services";
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -22,19 +23,8 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
-const services = [
-  { label: "Knotless Braids",    href: "/#prices" },
-  { label: "Box Braids",         href: "/#prices" },
-  { label: "Goddess Braids",     href: "/#prices" },
-  { label: "Cornrows",           href: "/#prices" },
-  { label: "Fulani Braids",      href: "/#prices" },
-  { label: "Crochet",            href: "/#prices" },
-  { label: "Natural Hair",       href: "/#prices" },
-  { label: "Children's Styles",  href: "/#prices" },
-];
-
 const quickLinks = [
-  { label: "Services & Pricing", href: "/#prices" },
+  { label: "Services & Pricing", href: "/#services" },
   { label: "Book Appointment",   href: "/#booking" },
   { label: "Accommodations",     href: "/#accommodations" },
   { label: "Hair Color Chart",   href: "/#colors" },
@@ -48,7 +38,7 @@ const tiers = [
   { name: "VIP",      fee: "$50",   hours: "24/7 Availability" },
 ];
 
-export default function Footer() {
+export default function Footer({ services }: { services: FooterServiceLink[] }) {
   const year = new Date().getFullYear();
 
   return (
@@ -168,7 +158,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2.5">
               {services.map((s) => (
-                <li key={s.label}>
+                <li key={`${s.href}-${s.label}`}>
                   <Link
                     href={s.href}
                     className="text-white/50 hover:text-white text-sm transition-colors duration-300 flex items-center gap-1.5 group"

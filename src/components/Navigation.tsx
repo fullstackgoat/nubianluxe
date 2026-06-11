@@ -11,7 +11,7 @@ const navLinks = [
   { label: "Accommodations", href: "/#accommodations" },
   { label: "Gallery",        href: "/#gallery" },
   { label: "Hair Colors",    href: "/#colors" },
-  { label: "Prices",         href: "/#prices" },
+  { label: "Prices",         href: "/#services" },
   { label: "Policy",         href: "/#policy" },
   { label: "About",          href: "/#about" },
 ];

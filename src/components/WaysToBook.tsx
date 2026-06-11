@@ -180,7 +180,7 @@ export default function WaysToBook() {
                 Review the full price list below, choose your service, pick a tier,
                 and secure your spot.
               </p>
-              <Link href="/#prices" className="btn-outline text-xs">
+              <Link href="/#services" className="btn-outline text-xs">
                 View Full Price List
               </Link>
             </div>

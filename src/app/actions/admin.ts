@@ -3,9 +3,11 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { parseDateInput } from "@/lib/dates";
+import { eachDayOfInterval } from "date-fns";
+import { parseDateInput, toDateKey, toLocalDateKey } from "@/lib/dates";
 import { getServiceDuration } from "@/lib/service-durations";
 import {
+  archiveStripeCatalogEntry,
   archiveStripePrice,
   createStripeCatalogEntry,
   createStripePriceForProduct,
@@ -14,10 +16,11 @@ import {
 } from "@/lib/stripe-catalog";
 import { isAdminConfigured, isAdminUser } from "@/lib/admin-auth";
 import { resyncAllPriceListServices } from "@/lib/sync-stripe-catalog";
+import { getBookingUrlForService } from "@/lib/booking-services";
 import {
-  normalizeBulletPointsForSave,
   type PriceListBulletPoint,
 } from "@/lib/price-list-bullets";
+import { persistBulletPoints } from "@/lib/price-list-db";
 
 // Mirrors src/app/admin/page.tsx — admin if userId or email is on the allowlist.
 async function assertAdmin() {
@@ -92,13 +95,39 @@ export async function unmarkServicePaid(id: string) {
   revalidatePath("/admin");
 }
 
-export async function addBlockedDate(date: string, reason?: string) {
+export async function addBlockedDates(
+  startDate: string,
+  endDate?: string,
+  reason?: string
+): Promise<{ created: number; skipped: number }> {
   await assertAdmin();
-  await prisma.blockedDate.create({
-    data: { date: parseDateInput(date), reason },
+
+  const start = parseDateInput(startDate);
+  const end = endDate ? parseDateInput(endDate) : start;
+  if (start > end) {
+    throw new Error("End date must be on or after the start date.");
+  }
+
+  const days = eachDayOfInterval({ start, end });
+  const existing = await prisma.blockedDate.findMany({
+    where: { date: { gte: start, lte: end } },
+    select: { date: true },
   });
+  const existingKeys = new Set(existing.map((row) => toDateKey(row.date)));
+  const toCreate = days.filter((day) => !existingKeys.has(toLocalDateKey(day)));
+
+  if (toCreate.length === 0) {
+    throw new Error("All dates in this range are already blocked.");
+  }
+
+  await prisma.blockedDate.createMany({
+    data: toCreate.map((date) => ({ date, reason })),
+  });
+
   revalidatePath("/admin");
   revalidatePath("/book");
+
+  return { created: toCreate.length, skipped: days.length - toCreate.length };
 }
 
 export async function removeBlockedDate(id: string) {
@@ -152,8 +181,6 @@ export async function updatePriceListService(
   const description = data.description.trim();
   if (!title) throw new Error("Title is required");
 
-  const bulletPoints = normalizeBulletPointsForSave(data.bulletPoints);
-
   const nextPrice = data.price?.trim() ?? existing.price;
   if (data.price !== undefined) {
     validateCatalogPrice(nextPrice);
@@ -190,12 +217,12 @@ export async function updatePriceListService(
     data: {
       title,
       description,
-      bulletPoints,
       price: nextPrice,
       duration: nextDuration,
       ...(stripePriceId !== existing.stripePriceId && { stripePriceId }),
     },
   });
+  await persistBulletPoints(id, data.bulletPoints);
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -236,20 +263,21 @@ export async function createPriceListService(
       ? data.duration
       : getServiceDuration(categoryId, title);
 
-  const bulletPoints = normalizeBulletPointsForSave(data.bulletPoints);
-
   const service = await prisma.priceListService.create({
     data: {
       categoryId,
       title,
       price,
       description,
-      bulletPoints,
       bookingUrl: "",
       duration,
       sortOrder,
     },
   });
+  await persistBulletPoints(service.id, data.bulletPoints);
+
+  const bookingUrl = getBookingUrlForService(service.id);
+  let stripeLinked = false;
 
   try {
     const stripe = await createStripeCatalogEntry({
@@ -266,21 +294,56 @@ export async function createPriceListService(
       data: {
         stripeProductId: stripe.productId,
         stripePriceId: stripe.priceId,
-        bookingUrl: `/book?serviceId=${service.id}`,
+        bookingUrl,
       },
     });
+    stripeLinked = true;
   } catch (err) {
-    await prisma.priceListService.delete({ where: { id: service.id } });
-    throw err instanceof Error
-      ? err
-      : new Error("Failed to create Stripe product for this service.");
+    await prisma.priceListService.update({
+      where: { id: service.id },
+      data: { bookingUrl },
+    });
+    console.error(
+      "Stripe catalog create failed:",
+      err instanceof Error ? err.message : err
+    );
   }
 
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/book");
 
-  return { id: service.id };
+  return { id: service.id, stripeLinked };
+}
+
+export async function deletePriceListService(id: string) {
+  await assertAdmin();
+
+  const existing = await prisma.priceListService.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      stripeProductId: true,
+      stripePriceId: true,
+    },
+  });
+  if (!existing) throw new Error("Service not found");
+
+  if (existing.stripeProductId) {
+    await archiveStripeCatalogEntry(
+      existing.stripeProductId,
+      existing.stripePriceId
+    );
+  }
+
+  await prisma.priceListService.delete({ where: { id } });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/book");
+
+  return { title: existing.title };
 }
 
 export async function resyncStripeCatalog(options?: { offset?: number; limit?: number }) {

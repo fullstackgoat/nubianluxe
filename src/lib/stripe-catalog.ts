@@ -75,6 +75,34 @@ export async function archiveStripePrice(priceId: string) {
   }
 }
 
+export async function archiveStripeCatalogEntry(
+  productId: string,
+  priceId?: string | null
+) {
+  if (priceId) {
+    await archiveStripePrice(priceId);
+  }
+
+  try {
+    const prices = await getStripe().prices.list({
+      product: productId,
+      active: true,
+      limit: 100,
+    });
+    for (const price of prices.data) {
+      await archiveStripePrice(price.id);
+    }
+  } catch {
+    // Product may already be removed from Stripe.
+  }
+
+  try {
+    await getStripe().products.update(productId, { active: false });
+  } catch {
+    // Product may already be archived or removed.
+  }
+}
+
 export async function updateStripeProductDetails(
   productId: string,
   input: { name: string; description: string; catalogPrice: string; title: string }
