@@ -2,7 +2,10 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { ArrowUpRight, Clock, CalendarCheck, Shield } from "lucide-react";
+import { ArrowUpRight, Clock, CalendarCheck, Shield, FileDown } from "lucide-react";
+
+/** Upload your PDF to public/downloads/parting-size-guide.pdf */
+const PARTING_SIZE_GUIDE_PDF = "/downloads/parting-size-guide.pdf";
 
 const tiers = [
   {
@@ -82,6 +85,17 @@ export default function WaysToBook() {
             <span className="text-[var(--color-gold)]">$100 deposit</span> applied
             toward your total — booking fees are separate and non-refundable.
           </p>
+          <div className="mt-8 flex justify-center">
+            <a
+              href={PARTING_SIZE_GUIDE_PDF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline text-xs inline-flex items-center gap-2 group"
+            >
+              <FileDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform duration-300" />
+              Parting Size Guide
+            </a>
+          </div>
         </motion.div>
 
         {/* Tier cards */}
