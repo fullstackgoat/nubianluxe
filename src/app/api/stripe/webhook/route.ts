@@ -5,10 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { sendOwnerBookingNotification } from "@/lib/email";
 
-// Confirmation email is intentionally not sent from this webhook right now —
-// the owner confirms each booking manually. See TODO.md §8 for the plan to
-// re-enable auto-confirmation + Resend email + status flip.
+// Payment webhook records cleared deposits and notifies the owner by email.
+// Appointments stay PENDING until manually confirmed in admin. See TODO.md §8
+// for optional auto-confirmation + customer email.
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -72,6 +73,15 @@ export async function POST(req: NextRequest) {
             ...(paidServiceUpfront && { servicePaid: true }),
           },
         });
+
+        try {
+          await sendOwnerBookingNotification(appointment, { paidServiceUpfront });
+        } catch (emailErr) {
+          console.error(
+            `[stripe-webhook] Owner notification email failed for appointment ${appointment.id}:`,
+            emailErr
+          );
+        }
 
         console.log(
           `[stripe-webhook] Recorded payment for appointment ${appointment.id} (PI ${pi.id})` +
