@@ -47,8 +47,8 @@ async function main() {
   console.log("Creating deposit + tier fee products…");
   const deposit = await createProductWithPrice(
     "Booking Deposit",
-    "Nubian Luxe appointment booking deposit ($100, applied toward service balance)",
-    10000,
+    "Nubian Luxe appointment booking deposit ($44, applied toward service balance)",
+    4400,
     { type: "deposit" }
   );
   const premium = await createProductWithPrice(

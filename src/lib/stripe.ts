@@ -12,7 +12,7 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export const DEPOSIT_AMOUNT = 10000; // $100.00 in cents
+export const DEPOSIT_AMOUNT = 4400; // $44.00 in cents
 
 export const TIER_FEES: Record<string, number> = {
   REGULAR: 0,

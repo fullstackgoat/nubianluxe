@@ -12,7 +12,7 @@ const tiers = [
     tagline: "Perfect for planners",
     fee: "Free",
     feeNote: "No booking fee",
-    deposit: "$100 deposit",
+    deposit: "$44 deposit",
     schedule: "Wed – Sat",
     hours: "8 AM – 8 PM",
     notice: "7-day advance notice",
@@ -25,7 +25,7 @@ const tiers = [
     tagline: "More flexibility, more time",
     fee: "$25",
     feeNote: "Booking fee",
-    deposit: "$100 deposit",
+    deposit: "$44 deposit",
     schedule: "Tue – Sat",
     hours: "6 AM – 10 PM",
     notice: "5-day advance notice",
@@ -38,7 +38,7 @@ const tiers = [
     tagline: "Total access, any time",
     fee: "$50",
     feeNote: "Booking fee",
-    deposit: "$100 deposit",
+    deposit: "$44 deposit",
     schedule: "7 Days a Week",
     hours: "24 / 7",
     notice: "3-day advance notice",
@@ -81,7 +81,7 @@ export default function WaysToBook() {
           <div className="gold-divider mb-6" />
           <p className="text-white/50 max-w-lg mx-auto text-sm leading-relaxed">
             Choose the tier that fits your schedule. All bookings require a{" "}
-            <span className="text-[var(--color-gold)]">$100 deposit</span> applied
+            <span className="text-[var(--color-gold)]">$44 deposit</span> applied
             toward your total — booking fees are separate and non-refundable.
           </p>
           <div className="mt-8 flex justify-center">

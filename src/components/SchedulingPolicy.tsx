@@ -1,7 +1,7 @@
 'use client'
 
 import { MotionDiv } from './motion/MotionDiv'
-import { Clock, Coffee, Plus, DollarSign, Calendar, AlertTriangle, RefreshCw, CreditCard, Ruler, Users } from 'lucide-react'
+import { Clock, Plus, DollarSign, Calendar, AlertTriangle, RefreshCw, CreditCard, Ruler, Users } from 'lucide-react'
 import Image from 'next/image'
 
 interface PolicySectionProps {
@@ -33,7 +33,6 @@ const PolicySection = ({ title, icon, children }: PolicySectionProps) => (
 export default function SchedulingPolicy() {
   return (
     <section className="relative">
-      {/* Light Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-white to-[#FDF5E6]/80" />
       
       <div className="relative px-4 py-20 max-w-7xl mx-auto">
@@ -53,20 +52,12 @@ export default function SchedulingPolicy() {
         </MotionDiv>
 
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-4">
-          {/* Left Column */}
           <div>
             <PolicySection 
               title="APPOINTMENTS" 
               icon={<Clock className="w-6 h-6 text-primary" />}
             >
               <p>24/7 APPOINTMENTS ARE AVAILABLE.</p>
-            </PolicySection>
-
-            <PolicySection 
-              title="SNACKS, MEALS & BREAKS" 
-              icon={<Coffee className="w-6 h-6 text-primary" />}
-            >
-              <p>SNACKS AND MEALS AVAILABLE WITH ALL SERVICE TYPES. MEALS AND BREAKS ARE FOR SERVICES THAT ARE 6+ HOURS. DETAILS ARE AVAILABLE DURING YOUR BOOKING.</p>
             </PolicySection>
 
             <PolicySection 
@@ -80,14 +71,14 @@ export default function SchedulingPolicy() {
               title="DEPOSITS" 
               icon={<DollarSign className="w-6 h-6 text-primary" />}
             >
-              <p>A $100 DEPOSIT IS DUE AT THE TIME OF BOOKING. THE DEPOSIT WILL BE SUBTRACTED FROM THE TOTAL SERVICE BALANCE.</p>
+              <p>A $44 DEPOSIT IS DUE AT THE TIME OF BOOKING. THE DEPOSIT WILL BE SUBTRACTED FROM THE TOTAL SERVICE BALANCE.</p>
             </PolicySection>
 
             <PolicySection 
               title="BOOKING FEE" 
               icon={<Calendar className="w-6 h-6 text-primary" />}
             >
-              <p>A NON-REFUNDABLE BOOKING FEE OF $25 FOR PREMIUM OR $50 FOR VIP IS REQUIRED TO SECURE YOUR APPOINTMENT. AFTER BOOKING, YOU WILL RECEIVE AN EMAIL WITH PAYMENT INSTRUCTIONS. THIS BOOKING FEE MUST BE PAID WITHIN 2 HOURS OF SCHEDULING YOUR APPOINTMENT. YOUR APPOINTMENT IS NOT FULLY SECURED UNTIL THE BOOKING FEE HAS BEEN RECEIVED.  IF THE FEE IS NOT PAID WITHIN 2 HOURS, YOUR APPOINTMENT WILL BE AUTOMATICALLY CANCELED, YOUR DEPOSIT WILL BE REFUNDED MINUS A $25 ADMINISTRATIVE FEE.  IF YOU WISH TO REBOOK, A NEW DEPOSIT AND BOOKING FEE WILL BE REQUIRED.</p>
+              <p>A NON-REFUNDABLE BOOKING FEE OF $25 FOR PREMIUM OR $50 FOR VIP IS REQUIRED TO SECURE YOUR APPOINTMENT.</p>
               <p className="font-semibold">✨ TRADITIONAL APPOINTMENTS DO NOT REQUIRE A BOOKING FEE.</p>
             </PolicySection>
 
@@ -95,17 +86,16 @@ export default function SchedulingPolicy() {
               title="THE CLIENT IS RUNNING LATE" 
               icon={<AlertTriangle className="w-6 h-6 text-primary" />}
             >
-              <p>IT IS UP TO THE CLIENT TO CONTACT THE STYLIST IF UNABLE TO BE PRESENT AT THE APPOINTMENT TIME. THE $100 DEPOSIT WILL HOLD YOUR APPOINTMENT UP TO 90 MINUTES.  AFTER THIS PERIOD, THE APPOINTMENT WILL BE CANCELED.  DEPOSITS AND BOOKING FEES ARE NON-REFUNDABLE AND NON-TRANSFERABLE.  A NEW DEPOSIT AND BOOKING FEE WILL BE REQUIRED TO RESCHEDULE.</p>
+              <p>IT IS UP TO THE CLIENT TO CONTACT THE STYLIST IF UNABLE TO BE PRESENT AT THE APPOINTMENT TIME. THE $44 DEPOSIT WILL HOLD YOUR APPOINTMENT UP TO 60 MINUTES. AFTER THIS PERIOD, THE APPOINTMENT WILL BE CANCELED. DEPOSITS AND BOOKING FEES ARE NON-REFUNDABLE AND NON-TRANSFERABLE. A NEW DEPOSIT AND BOOKING FEE WILL BE REQUIRED TO RESCHEDULE.</p>
             </PolicySection>
           </div>
 
-          {/* Right Column */}
           <div>
             <PolicySection 
               title="RESCHEDULING" 
               icon={<RefreshCw className="w-6 h-6 text-primary" />}
             >
-              <p>ALL APPOINTMENTS SHOULD BE RESCHEDULED WITH A 48+ HOUR NOTICE. THE DEPOSIT & BOOKING FEE IS TRANSFERRABLE IF THE NEW APPOINTMENT IS DATED WITHIN 21 DAYS OF THE ORIGINAL APPOINTMENT DATE. ONE RESCHEDULE ALLOWED PER DEPOSIT.</p>
+              <p>ALL APPOINTMENTS SHOULD BE RESCHEDULED WITH A 48+ HOUR NOTICE. THE DEPOSIT &amp; BOOKING FEE IS TRANSFERRABLE (NOT REFUNDABLE) IF THE NEW APPOINTMENT IS DATED WITHIN 21 DAYS OF THE ORIGINAL APPOINTMENT DATE. ONE RESCHEDULE ALLOWED PER DEPOSIT.</p>
             </PolicySection>
 
             <PolicySection 
@@ -148,4 +138,4 @@ export default function SchedulingPolicy() {
       </div>
     </section>
   )
-} 
+}

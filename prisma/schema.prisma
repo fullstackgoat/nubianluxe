@@ -31,7 +31,7 @@ model Appointment {
   servicePaid           Boolean           @default(false) // true if service fee was paid upfront OR marked paid by admin
   tier                  BookingTier
   tierFee               Int               @default(0)
-  deposit               Int               @default(10000)
+  deposit               Int               @default(4400)
   date                  DateTime
   duration              Int
   status                AppointmentStatus @default(PENDING)

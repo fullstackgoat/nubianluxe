@@ -1,6 +1,7 @@
 "use client";
 
 import { TIERS } from "@/lib/booking-data";
+import { DEPOSIT_AMOUNT, formatCents } from "@/lib/stripe";
 import type { BookingState } from "./BookingWizard";
 import WizardStepNav from "./WizardStepNav";
 
@@ -97,17 +98,17 @@ export default function StepTier({ state, update, onNext, onBack }: Props) {
         <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)]">
           Required at Booking
         </p>
-        <SummaryLine label="Deposit (applied to service total)" value="$100.00" />
+        <SummaryLine label="Deposit (applied to service total)" value={formatCents(DEPOSIT_AMOUNT)} />
         {state.tierFee > 0 && (
           <SummaryLine
             label={`${state.tier.charAt(0) + state.tier.slice(1).toLowerCase()} booking fee (non-refundable)`}
-            value={`$${(state.tierFee / 100).toFixed(2)}`}
+            value={formatCents(state.tierFee)}
           />
         )}
         <div className="border-t border-white/10 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-white font-semibold">
           <span>Booking fee total</span>
           <span className="text-[var(--color-gold)]">
-            ${((10000 + state.tierFee) / 100).toFixed(2)}
+            {formatCents(DEPOSIT_AMOUNT + state.tierFee)}
           </span>
         </div>
         {state.servicePriceCents > 0 && (

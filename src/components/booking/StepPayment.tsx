@@ -14,12 +14,13 @@ import {
 import { formatHairColorSelection } from "@/lib/hair-colors";
 import { formatSelectedServiceOptions } from "@/lib/price-list-bullets";
 import { createBookingIntent, extendSlotHold } from "@/app/actions/booking";
+import { DEPOSIT_AMOUNT, formatCents } from "@/lib/stripe";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
 );
 
-const DEPOSIT_CENTS = 10000;
+const DEPOSIT_CENTS = DEPOSIT_AMOUNT;
 
 interface Props {
   state: BookingState;
@@ -188,7 +189,7 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
           Payment
         </h2>
         <p className="text-white/40 text-sm">
-          A $100 deposit + booking fee is required now. The service balance is optional — pay upfront or at your appointment.
+          A {formatCents(DEPOSIT_AMOUNT)} deposit + booking fee is required now. The service balance is optional — pay upfront or at your appointment.
         </p>
       </div>
 

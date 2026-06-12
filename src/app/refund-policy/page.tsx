@@ -23,7 +23,7 @@ export default function RefundPolicyPage() {
         Deposit
       </h2>
       <p>
-        A <strong>$100 deposit</strong> is required at the time of booking and is{" "}
+        A <strong>$44 deposit</strong> is required at the time of booking and is{" "}
         <strong>credited toward your final service total</strong> at the appointment. The
         deposit is <strong>non-refundable</strong> in the events described below.
       </p>
@@ -41,16 +41,13 @@ export default function RefundPolicyPage() {
         Rescheduling
       </h2>
       <p>
-        You may reschedule your appointment <strong>once at no cost</strong>, provided you
-        give us at least the following notice:
+        You may reschedule your appointment <strong>once</strong>, provided you give us at
+        least <strong>48 hours&rsquo; notice</strong>. The deposit and booking fee are{" "}
+        <strong>transferable (not refundable)</strong> if the new appointment is scheduled
+        within 21 days of the original appointment date.
       </p>
-      <ul className="list-disc pl-6 space-y-1 text-white/70">
-        <li><strong>Regular tier:</strong> 7 days&rsquo; notice</li>
-        <li><strong>Premium tier:</strong> 5 days&rsquo; notice</li>
-        <li><strong>VIP tier:</strong> 3 days&rsquo; notice</li>
-      </ul>
       <p>
-        Reschedules with less notice than the above will forfeit the deposit. A new
+        Reschedules with less than 48 hours&rsquo; notice will forfeit the deposit. A new
         deposit will be required to book a replacement appointment.
       </p>
 
@@ -72,19 +69,20 @@ export default function RefundPolicyPage() {
         No-Shows
       </h2>
       <p>
-        If you do not arrive within 30 minutes of your scheduled appointment time and
-        have not contacted us, the appointment will be marked as a no-show. The full
-        deposit and tier booking fee will be forfeited, and a new deposit will be required
-        to book future appointments.
+        If you do not arrive within 60 minutes of your scheduled appointment time and
+        have not contacted us, the appointment will be canceled. The deposit and tier
+        booking fee will be forfeited, and a new deposit will be required to book future
+        appointments.
       </p>
 
       <h2 className="text-2xl font-display italic text-[var(--color-gold)] mt-10">
         Late Arrivals
       </h2>
       <p>
-        If you arrive more than 15 minutes late, we may need to shorten your service or
-        reschedule (at our discretion) to avoid impacting other clients. The deposit is
-        not refunded in this case.
+        If you are unable to be present at your appointment time, contact the stylist as
+        soon as possible. Your $44 deposit will hold your appointment for up to 60 minutes.
+        After that window, the appointment may be canceled and the deposit and booking fee
+        will not be refunded.
       </p>
 
       <h2 className="text-2xl font-display italic text-[var(--color-gold)] mt-10">

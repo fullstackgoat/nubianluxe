@@ -33,10 +33,11 @@ export default function TermsPage() {
         2. Booking and Appointments
       </h2>
       <p>
-        All appointments require a non-refundable <strong>$100 deposit</strong> to reserve your
+        All appointments require a non-refundable <strong>$44 deposit</strong> to reserve your
         time. Premium and VIP tier appointments require an additional non-refundable booking
-        fee ($25 and $50 respectively). Service balances are quoted at booking and finalized
-        at the appointment based on your hair length, density, and chosen style.
+        fee ($25 and $50 respectively), collected at booking. Service balances are quoted at
+        booking and finalized at the appointment based on your hair length, density, and
+        chosen style.
       </p>
       <p>
         You may pay the full estimated service amount upfront or settle the balance at the

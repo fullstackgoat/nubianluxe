@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Book Your Appointment",
   description:
-    "Reserve your luxury braiding appointment at Nubian Luxe. Choose your service, tier, and secure your slot with a $100 deposit.",
+    "Reserve your luxury braiding appointment at Nubian Luxe. Choose your service, tier, and secure your slot with a $44 deposit.",
 };
 
 export default async function BookPage() {

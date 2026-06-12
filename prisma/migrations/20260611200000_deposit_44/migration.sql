@@ -1,0 +1,2 @@
+ALTER TABLE "Appointment"
+ALTER COLUMN "deposit" SET DEFAULT 4400;

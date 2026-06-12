@@ -87,7 +87,7 @@ export default function BookingConfirmationEmail({ clientName, service, tier, da
             {[
               "Please arrive with clean, detangled hair or add Braid Prep / Detangling service.",
               "A 48-hour notice is required to reschedule. Deposits are transferable within 21 days.",
-              "Your $100 deposit will be applied to your total at the appointment.",
+              "Your $44 deposit will be applied to your total at the appointment.",
               "Payment checkpoint at ~80% service completion.",
             ].map((note, i) => (
               <Text key={i} style={{ color: "rgba(245,240,232,0.65)", fontSize: 13, lineHeight: 1.6, margin: "0 0 6px" }}>
