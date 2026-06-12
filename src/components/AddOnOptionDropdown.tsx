@@ -1,0 +1,152 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import {
+  formatBulletCostDisplay,
+  formatBulletPointMeta,
+  normalizeBulletPointsForSave,
+  type PriceListBulletPoint,
+} from "@/lib/price-list-bullets";
+
+interface Props {
+  bulletPoints: PriceListBulletPoint[];
+  pricedIndices: number[];
+  selectedIndices: number[];
+  onToggle: (index: number) => void;
+  idPrefix?: string;
+  placeholder?: string;
+}
+
+export default function AddOnOptionDropdown({
+  bulletPoints,
+  pricedIndices,
+  selectedIndices,
+  onToggle,
+  idPrefix = "addon",
+  placeholder = "Select add-on option",
+}: Props) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const normalized = normalizeBulletPointsForSave(bulletPoints);
+
+  const selectedIndex = selectedIndices.find((index) => pricedIndices.includes(index));
+  const selectedPoint =
+    selectedIndex !== undefined ? normalized[selectedIndex] : undefined;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
+
+  const handleToggle = (index: number) => {
+    onToggle(index);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((current) => !current)}
+        className={`w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg border text-left transition-all duration-300 ${
+          open || selectedPoint
+            ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
+            : "border-white/10 hover:border-white/25 bg-[rgba(255,255,255,0.02)]"
+        }`}
+      >
+        <span className="min-w-0 flex-1">
+          {selectedPoint ? (
+            <>
+              <span className="text-white/80 text-xs capitalize block truncate">
+                {selectedPoint.label}
+              </span>
+              {formatBulletCostDisplay(selectedPoint.cost) && (
+                <span className="text-[var(--color-gold)] text-xs font-semibold">
+                  {formatBulletCostDisplay(selectedPoint.cost)}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-white/45 text-xs">{placeholder}</span>
+          )}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 text-[var(--color-gold-dark)] transition-transform duration-300 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && (
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label="Add-on options"
+          className="absolute z-20 left-0 right-0 mt-2 max-h-56 overflow-y-auto rounded-lg border border-white/10 bg-[var(--color-obsidian-soft)] shadow-[0_16px_40px_rgba(0,0,0,0.45)] py-1"
+        >
+          {pricedIndices.map((index) => {
+            const point = normalized[index];
+            if (!point) return null;
+
+            const isChecked = selectedIndices.includes(index);
+            const meta = formatBulletPointMeta(point);
+            const addOnLabel = formatBulletCostDisplay(point.cost);
+
+            return (
+              <li key={`${idPrefix}-${index}`} role="presentation">
+                <label
+                  className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition-colors duration-200 ${
+                    isChecked
+                      ? "bg-[rgba(201,168,76,0.12)]"
+                      : "hover:bg-[rgba(255,255,255,0.04)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleToggle(index)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-gold)] cursor-pointer"
+                  />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-white/80 text-xs capitalize">{point.label}</span>
+                      {addOnLabel && (
+                        <span className="text-[var(--color-gold)] text-xs font-semibold shrink-0">
+                          {addOnLabel}
+                        </span>
+                      )}
+                    </span>
+                    {meta && (
+                      <span className="text-white/30 text-[0.65rem] block mt-1">{meta}</span>
+                    )}
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}

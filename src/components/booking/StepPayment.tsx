@@ -13,6 +13,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { formatHairColorSelection } from "@/lib/hair-colors";
 import { formatSelectedServiceOptions } from "@/lib/price-list-bullets";
+import { formatSelectedAddOnServices } from "@/lib/booking-services";
 import { createBookingIntent, extendSlotHold } from "@/app/actions/booking";
 import { DEPOSIT_AMOUNT, formatCents } from "@/lib/stripe";
 
@@ -143,6 +144,7 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
       serviceCategory:   state.serviceCategory,
       servicePrice:      state.servicePriceCents,
       selectedBulletIndices: state.selectedBulletIndices,
+      selectedAddOnServiceIds: state.selectedAddOnServiceIds,
       stripeProductId:   state.stripeProductId ?? undefined,
       stripePriceId:     state.stripePriceId ?? undefined,
       hairColorCategory: state.hairColorCategory || undefined,
@@ -234,6 +236,14 @@ export default function StepPayment({ state, update, onNext, onBack }: Props) {
           <Line
             label="Selected options"
             value={formatSelectedServiceOptions(state.selectedServiceOptions)}
+            subtle
+          />
+        )}
+
+        {state.selectedAddOnServices.length > 0 && (
+          <Line
+            label="Add-on services"
+            value={formatSelectedAddOnServices(state.selectedAddOnServices)}
             subtle
           />
         )}

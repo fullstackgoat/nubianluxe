@@ -17,9 +17,16 @@ interface Props {
   update: (patch: Partial<BookingState>) => void;
   onNext: () => void;
   onBack: () => void;
+  nextLabel?: string;
 }
 
-export default function StepHairColor({ state, update, onNext, onBack }: Props) {
+export default function StepHairColor({
+  state,
+  update,
+  onNext,
+  onBack,
+  nextLabel = "Continue — Choose Booking Tier",
+}: Props) {
   const requirement = getHairColorRequirement(state.serviceCategoryId);
   const [categoryId, setCategoryId] = useState(state.hairColorCategory || HAIR_COLOR_CATEGORIES[0].id);
   const [colorValue, setColorValue] = useState(state.hairColorValue);
@@ -171,7 +178,7 @@ export default function StepHairColor({ state, update, onNext, onBack }: Props) 
         <WizardStepNav
           onBack={onBack}
           onNext={handleContinue}
-          nextLabel="Continue — Choose Booking Tier"
+          nextLabel={nextLabel}
           nextDisabled={!canProceed}
         />
       </div>

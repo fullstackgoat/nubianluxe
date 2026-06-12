@@ -5,11 +5,10 @@ import type { BookingCatalogCategory } from "@/lib/booking-services";
 import { buildBookingServicePricing } from "@/lib/booking-services";
 import { getHairColorRequirement } from "@/lib/hair-colors";
 import {
-  formatBulletCostDisplay,
-  formatBulletPointMeta,
   getPricedBulletIndices,
   normalizeBulletPointsForSave,
 } from "@/lib/price-list-bullets";
+import AddOnOptionDropdown from "@/components/AddOnOptionDropdown";
 import type { BookingState } from "./BookingWizard";
 
 interface Props {
@@ -17,9 +16,10 @@ interface Props {
   state: BookingState;
   update: (patch: Partial<BookingState>) => void;
   onNext: () => void;
+  showAddOnStep?: boolean;
 }
 
-export default function StepService({ catalog, state, update, onNext }: Props) {
+export default function StepService({ catalog, state, update, onNext, showAddOnStep = false }: Props) {
   const initialCategory =
     catalog.find((cat) => cat.category === state.serviceCategory)?.id ??
     catalog[0]?.id ??
@@ -40,8 +40,11 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
     state.selectedBulletIndices.some((index) => pricedBulletIndices.includes(index));
   const canProceed = !!state.serviceId && hasValidBulletSelection;
   const hairColorReq = getHairColorRequirement(state.serviceCategoryId);
-  const continueLabel =
-    hairColorReq !== "none" ? "Continue — Select Hair Color" : "Continue — Choose Booking Tier";
+  const continueLabel = hairColorReq !== "none"
+    ? "Continue — Select Hair Color"
+    : showAddOnStep
+      ? "Continue — Add-On Services"
+      : "Continue — Choose Booking Tier";
 
   const selectService = (
     category: BookingCatalogCategory,
@@ -156,7 +159,7 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
                 Service Options
               </p>
               <p className="text-white/50 text-sm mt-1">
-                Choose an add-on option. Your total updates automatically.
+                Choose an add-on from the list. Your total updates automatically.
               </p>
             </div>
             <div className="text-left sm:text-right">
@@ -165,45 +168,14 @@ export default function StepService({ catalog, state, update, onNext }: Props) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            {pricedBulletIndices.map((index) => {
-              const point = normalizedBullets[index];
-              if (!point) return null;
-
-              const isChecked = state.selectedBulletIndices.includes(index);
-              const meta = formatBulletPointMeta(point);
-              const addOnLabel = formatBulletCostDisplay(point.cost);
-
-              return (
-                <label
-                  key={`${selectedItem.id}-${index}`}
-                  className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 ${
-                    isChecked
-                      ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
-                      : "border-white/10 hover:border-white/25 bg-[rgba(255,255,255,0.02)]"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleBulletOption(index)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-gold)]"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-white text-sm font-medium capitalize">{point.label}</span>
-                      {addOnLabel && (
-                        <span className="text-[var(--color-gold)] text-sm font-semibold shrink-0">
-                          {addOnLabel}
-                        </span>
-                      )}
-                    </div>
-                    {meta && <p className="text-white/35 text-xs mt-1">{meta}</p>}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
+          <AddOnOptionDropdown
+            bulletPoints={selectedItem.bulletPoints}
+            pricedIndices={pricedBulletIndices}
+            selectedIndices={state.selectedBulletIndices}
+            onToggle={toggleBulletOption}
+            idPrefix={selectedItem.id}
+            placeholder="Select service option"
+          />
 
           <p className="text-white/35 text-xs">
             Base price {state.baseServicePrice}

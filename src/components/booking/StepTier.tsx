@@ -2,6 +2,7 @@
 
 import { TIERS } from "@/lib/booking-data";
 import { DEPOSIT_AMOUNT, formatCents } from "@/lib/stripe";
+import { formatSelectedAddOnServices } from "@/lib/booking-services";
 import type { BookingState } from "./BookingWizard";
 import WizardStepNav from "./WizardStepNav";
 
@@ -98,6 +99,12 @@ export default function StepTier({ state, update, onNext, onBack }: Props) {
         <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)]">
           Required at Booking
         </p>
+        {state.selectedAddOnServices.length > 0 && (
+          <SummaryLine
+            label="Add-on services"
+            value={formatSelectedAddOnServices(state.selectedAddOnServices)}
+          />
+        )}
         <SummaryLine label="Deposit (applied to service total)" value={formatCents(DEPOSIT_AMOUNT)} />
         {state.tierFee > 0 && (
           <SummaryLine

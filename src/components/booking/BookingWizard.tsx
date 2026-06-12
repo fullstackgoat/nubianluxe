@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import StepService from "./StepService";
 import StepHairColor from "./StepHairColor";
+import StepAddOnServices from "./StepAddOnServices";
 import StepTier from "./StepTier";
 import StepDateTime from "./StepDateTime";
 import StepClientInfo from "./StepClientInfo";
@@ -16,7 +17,9 @@ import {
   findBookingService,
   buildBookingServicePricing,
   parseBulletIndicesFromParam,
+  shouldShowAddOnServicesStep,
   type BookingCatalogCategory,
+  type SelectedAddOnService,
 } from "@/lib/booking-services";
 import { parseServicePriceCents } from "@/lib/booking-data";
 import type { SelectedServiceOption } from "@/lib/price-list-bullets";
@@ -40,6 +43,8 @@ export type BookingState = {
   serviceBulletPoints: import("@/lib/price-list-bullets").PriceListBulletPoint[];
   selectedBulletIndices: number[];
   selectedServiceOptions: SelectedServiceOption[];
+  selectedAddOnServiceIds: string[];
+  selectedAddOnServices: SelectedAddOnService[];
   stripeProductId: string | null;
   stripePriceId: string | null;
   hairColorCategory: string;
@@ -59,11 +64,12 @@ export type BookingState = {
   totalCharge: number;
 };
 
-type WizardStep = "service" | "hairColor" | "tier" | "dateTime" | "clientInfo" | "payment" | "confirmation";
+type WizardStep = "service" | "hairColor" | "addOnServices" | "tier" | "dateTime" | "clientInfo" | "payment" | "confirmation";
 
 const STEP_LABELS: Record<WizardStep, string> = {
   service: "Service",
   hairColor: "Hair Color",
+  addOnServices: "Add-Ons",
   tier: "Tier",
   dateTime: "Date & Time",
   clientInfo: "Your Info",
@@ -98,6 +104,8 @@ function buildInitialState(
         serviceBulletPoints: [] as import("@/lib/price-list-bullets").PriceListBulletPoint[],
         selectedBulletIndices: [] as number[],
         selectedServiceOptions: [] as SelectedServiceOption[],
+        selectedAddOnServiceIds: [] as string[],
+        selectedAddOnServices: [] as SelectedAddOnService[],
         servicePrice: "",
         servicePriceCents: 0,
         duration: 0,
@@ -131,10 +139,16 @@ function buildInitialState(
   };
 }
 
-function buildWizardSteps(state: BookingState): WizardStep[] {
+function buildWizardSteps(
+  state: BookingState,
+  catalog: BookingCatalogCategory[]
+): WizardStep[] {
   const steps: WizardStep[] = ["service"];
   if (getHairColorRequirement(state.serviceCategoryId) !== "none") {
     steps.push("hairColor");
+  }
+  if (shouldShowAddOnServicesStep(catalog, state.serviceCategoryId, state.serviceCategory)) {
+    steps.push("addOnServices");
   }
   steps.push("tier", "dateTime", "clientInfo", "payment", "confirmation");
   return steps;
@@ -147,7 +161,7 @@ function getInitialStepIndex(
   bulletIndicesFromUrl: number[]
 ): number {
   const state = buildInitialState(catalog, tierFromUrl, serviceIdFromUrl, bulletIndicesFromUrl, "");
-  const steps = buildWizardSteps(state);
+  const steps = buildWizardSteps(state, catalog);
   if (!serviceIdFromUrl) return 0;
 
   const hairReq = getHairColorRequirement(state.serviceCategoryId);
@@ -201,7 +215,10 @@ export default function BookingWizard({
     });
   }, [sessionId]);
 
-  const steps = useMemo(() => buildWizardSteps(state), [state.serviceCategoryId]);
+  const steps = useMemo(
+    () => buildWizardSteps(state, catalog),
+    [state.serviceCategoryId, state.serviceCategory, catalog]
+  );
   const currentStep = steps[stepIndex] ?? "service";
   const progressSteps = steps.filter((step) => step !== "confirmation");
   const progressIndex = progressSteps.indexOf(currentStep as Exclude<WizardStep, "confirmation">);
@@ -214,12 +231,20 @@ export default function BookingWizard({
         patch.serviceCategoryId !== undefined &&
         patch.serviceCategoryId !== s.serviceCategoryId
       ) {
-        const nextSteps = buildWizardSteps(nextState);
+        const nextSteps = buildWizardSteps(nextState, catalog);
         setStepIndex((index) => Math.min(index, nextSteps.length - 1));
       }
       return nextState;
     });
-  }, []);
+  }, [catalog]);
+
+  const showAddOnStep = shouldShowAddOnServicesStep(
+    catalog,
+    state.serviceCategoryId,
+    state.serviceCategory
+  );
+  const tierStepLabel = "Continue — Choose Booking Tier";
+  const addOnStepLabel = "Continue — Add-On Services";
 
   const clearSlotHold = useCallback(() => {
     setState((s) => {
@@ -331,10 +356,31 @@ export default function BookingWizard({
           transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           {currentStep === "service" && (
-            <StepService catalog={catalog} state={state} update={update} onNext={next} />
+            <StepService
+              catalog={catalog}
+              state={state}
+              update={update}
+              onNext={next}
+              showAddOnStep={showAddOnStep}
+            />
           )}
           {currentStep === "hairColor" && (
-            <StepHairColor state={state} update={update} onNext={next} onBack={back} />
+            <StepHairColor
+              state={state}
+              update={update}
+              onNext={next}
+              onBack={back}
+              nextLabel={showAddOnStep ? addOnStepLabel : tierStepLabel}
+            />
+          )}
+          {currentStep === "addOnServices" && (
+            <StepAddOnServices
+              catalog={catalog}
+              state={state}
+              update={update}
+              onNext={next}
+              onBack={back}
+            />
           )}
           {currentStep === "tier" && (
             <StepTier state={state} update={update} onNext={next} onBack={back} />

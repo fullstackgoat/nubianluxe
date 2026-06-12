@@ -9,11 +9,11 @@ import { getBookingUrlForService } from "@/lib/booking-services";
 import { parseServicePriceCents } from "@/lib/booking-data";
 import {
   computeServiceSelectionTotals,
-  formatBulletCostDisplay,
   formatBulletPointMeta,
   getPricedBulletIndices,
   normalizeBulletPointsForSave,
 } from "@/lib/price-list-bullets";
+import AddOnOptionDropdown from "@/components/AddOnOptionDropdown";
 
 function ServiceCard({
   service,
@@ -101,43 +101,13 @@ function ServiceCard({
           <p className="text-[0.6rem] tracking-[0.2em] uppercase text-[var(--color-gold-dark)]">
             Add-on options
           </p>
-          {pricedIndices.map((index) => {
-            const point = bullets[index];
-            if (!point) return null;
-
-            const isChecked = selectedBulletIndices.includes(index);
-            const meta = formatBulletPointMeta(point);
-            const addOnLabel = formatBulletCostDisplay(point.cost);
-
-            return (
-              <label
-                key={`${service.id}-option-${index}`}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-300 ${
-                  isChecked
-                    ? "border-[var(--color-gold)] bg-[rgba(201,168,76,0.08)]"
-                    : "border-white/10 hover:border-white/25 bg-[rgba(255,255,255,0.02)]"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => toggleOption(index)}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-gold)] cursor-pointer"
-                />
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-white/80 text-xs capitalize">{point.label}</span>
-                    {addOnLabel && (
-                      <span className="text-[var(--color-gold)] text-xs font-semibold shrink-0">
-                        {addOnLabel}
-                      </span>
-                    )}
-                  </span>
-                  {meta && <span className="text-white/30 text-[0.65rem] block mt-1">{meta}</span>}
-                </span>
-              </label>
-            );
-          })}
+          <AddOnOptionDropdown
+            bulletPoints={service.bulletPoints}
+            pricedIndices={pricedIndices}
+            selectedIndices={selectedBulletIndices}
+            onToggle={toggleOption}
+            idPrefix={service.id}
+          />
         </div>
       )}
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CheckCircle, Calendar, Clock, Phone, Palette } from "lucide-react";
 import { formatHairColorSelection } from "@/lib/hair-colors";
 import { formatSelectedServiceOptions } from "@/lib/price-list-bullets";
+import { formatSelectedAddOnServices } from "@/lib/booking-services";
 
 interface Props {
   state: BookingState;
@@ -62,6 +63,12 @@ export default function StepConfirmation({ state }: Props) {
               ? [{
                   icon: CheckCircle,
                   label: formatSelectedServiceOptions(state.selectedServiceOptions),
+                }]
+              : []),
+            ...(state.selectedAddOnServices.length > 0
+              ? [{
+                  icon: CheckCircle,
+                  label: formatSelectedAddOnServices(state.selectedAddOnServices),
                 }]
               : []),
             ...(state.hairColorValue && state.hairColorCategory

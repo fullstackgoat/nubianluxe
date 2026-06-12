@@ -41,6 +41,7 @@ const BookingSchema = z.object({
   serviceCategory:       z.string().min(2),
   servicePrice:          z.number().int().nonnegative(),
   selectedBulletIndices: z.array(z.number().int().nonnegative()).default([]),
+  selectedAddOnServiceIds: z.array(z.string()).default([]),
   stripeProductId:       z.string().optional(),
   stripePriceId:         z.string().optional(),
   hairColorCategory:     z.string().optional(),
@@ -386,16 +387,64 @@ export async function createBookingIntent(input: BookingInput) {
     selectedIndices: parsed.data.selectedBulletIndices,
   });
 
-  if (pricing.servicePriceCents !== servicePrice) {
+  const addOnCategory = await prisma.serviceCategory.findFirst({
+    where: { title: "Add-On Services" },
+    select: { id: true },
+  });
+
+  let addOnTotalCents = 0;
+  let addOnTotalDuration = 0;
+  const validatedAddOns: { title: string; price: string }[] = [];
+
+  if (parsed.data.selectedAddOnServiceIds.length > 0) {
+    if (!addOnCategory) {
+      return { error: "Add-on services are unavailable. Please refresh and try again." };
+    }
+
+    if (dbService.categoryId === addOnCategory.id) {
+      return { error: "Invalid add-on selection." };
+    }
+
+    const addOnServices = await prisma.priceListService.findMany({
+      where: {
+        id: { in: parsed.data.selectedAddOnServiceIds },
+        categoryId: addOnCategory.id,
+      },
+      select: { id: true, title: true, price: true, duration: true },
+    });
+
+    if (addOnServices.length !== parsed.data.selectedAddOnServiceIds.length) {
+      return { error: "One or more add-on services are no longer available." };
+    }
+
+    for (const addOn of addOnServices) {
+      addOnTotalCents += parseServicePriceCents(addOn.price);
+      addOnTotalDuration += addOn.duration;
+      validatedAddOns.push({ title: addOn.title, price: addOn.price });
+    }
+  }
+
+  const expectedPriceCents = pricing.servicePriceCents + addOnTotalCents;
+  const expectedDuration = pricing.duration + addOnTotalDuration;
+
+  if (expectedPriceCents !== servicePrice) {
     return { error: "Service price changed. Please refresh and try again." };
   }
 
-  if (pricing.duration !== parsed.data.duration) {
+  if (expectedDuration !== parsed.data.duration) {
     return { error: "Service duration changed. Please refresh and try again." };
   }
 
   const selectedOptionsNote = formatSelectedServiceOptions(pricing.selectedOptions);
-  const combinedNotes = [parsed.data.notes?.trim(), selectedOptionsNote ? `Service options: ${selectedOptionsNote}` : ""]
+  const addOnServicesNote =
+    validatedAddOns.length > 0
+      ? `Add-on services: ${validatedAddOns.map((addOn) => `${addOn.title} (${addOn.price})`).join(", ")}`
+      : "";
+  const combinedNotes = [
+    parsed.data.notes?.trim(),
+    selectedOptionsNote ? `Service options: ${selectedOptionsNote}` : "",
+    addOnServicesNote,
+  ]
     .filter(Boolean)
     .join("\n\n");
 
@@ -441,6 +490,7 @@ export async function createBookingIntent(input: BookingInput) {
         pay_service_upfront:    String(payServiceUpfront),
         service_price_cents:    String(servicePrice),
         ...(selectedOptionsNote && { service_options: selectedOptionsNote }),
+        ...(addOnServicesNote && { add_on_services: addOnServicesNote }),
         stripe_deposit_price:   STRIPE_PRICE_IDS.DEPOSIT,
         ...(parsed.data.stripeProductId && {
           stripe_service_product: parsed.data.stripeProductId,

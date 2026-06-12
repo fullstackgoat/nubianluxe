@@ -3,6 +3,7 @@
 import type { BookingState } from "./BookingWizard";
 import WizardStepNav from "./WizardStepNav";
 import { extendSlotHold } from "@/app/actions/booking";
+import { formatSelectedAddOnServices } from "@/lib/booking-services";
 
 interface Props {
   state: BookingState;
@@ -78,6 +79,12 @@ export default function StepClientInfo({ state, update, onNext, onBack }: Props)
                 value: state.selectedServiceOptions
                   .map((option) => `${option.label} (+$${(option.costCents / 100).toFixed(0)})`)
                   .join(", "),
+              }]
+            : []),
+          ...(state.selectedAddOnServices.length > 0
+            ? [{
+                label: "Add-ons",
+                value: formatSelectedAddOnServices(state.selectedAddOnServices),
               }]
             : []),
           { label: "Price", value: state.servicePrice },
