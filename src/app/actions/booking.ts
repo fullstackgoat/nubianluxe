@@ -20,9 +20,11 @@ import { parseServicePriceCents, TIER_SLOTS, type TierId } from "@/lib/booking-d
 import {
   appointmentDateToInterval,
   classifySlots,
+  expandIntervalWithBuffer,
   getIntervalForSlot,
   type TimeInterval,
 } from "@/lib/slot-availability";
+import { getAppointmentBufferMinutes } from "@/lib/salon-settings";
 import {
   computeServiceSelectionTotals,
   formatSelectedServiceOptions,
@@ -132,7 +134,11 @@ async function getOccupiedIntervalsForDay(
     getIntervalForSlot(hold.timeSlot, hold.durationMinutes)
   );
 
-  return [...appointmentIntervals, ...holdIntervals];
+  const bufferMinutes = await getAppointmentBufferMinutes();
+
+  return [...appointmentIntervals, ...holdIntervals].map((interval) =>
+    expandIntervalWithBuffer(interval, bufferMinutes)
+  );
 }
 
 async function getDaySlotAvailability(

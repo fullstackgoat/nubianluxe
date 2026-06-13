@@ -141,6 +141,35 @@ export async function removeBlockedDate(id: string) {
   revalidatePath("/book");
 }
 
+export async function updateAppointmentBufferMinutes(
+  minutes: number
+): Promise<AdminActionResult> {
+  try {
+    await assertAdmin();
+
+    if (!Number.isFinite(minutes) || minutes < 0 || minutes > 480) {
+      return { ok: false, error: "Buffer must be between 0 and 480 minutes." };
+    }
+
+    const normalized = Math.round(minutes);
+
+    await prisma.salonSettings.upsert({
+      where: { id: "default" },
+      create: { id: "default", appointmentBufferMinutes: normalized },
+      update: { appointmentBufferMinutes: normalized },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/book");
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to save buffer setting.",
+    };
+  }
+}
+
 export async function updateAccommodation(
   id: string,
   data: { title: string; bulletPoints: string[] }

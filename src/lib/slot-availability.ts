@@ -34,6 +34,18 @@ export function intervalsOverlap(a: TimeInterval, b: TimeInterval): boolean {
   return a.startMinutes < b.endMinutes && b.startMinutes < a.endMinutes;
 }
 
+export function expandIntervalWithBuffer(
+  interval: TimeInterval,
+  bufferMinutes: number
+): TimeInterval {
+  if (bufferMinutes <= 0) return interval;
+
+  return {
+    startMinutes: Math.max(0, interval.startMinutes - bufferMinutes),
+    endMinutes: interval.endMinutes + bufferMinutes,
+  };
+}
+
 export function appointmentDateToInterval(
   date: Date,
   durationMinutes: number

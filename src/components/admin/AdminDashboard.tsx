@@ -6,6 +6,7 @@ import { format, isToday, isFuture } from "date-fns";
 import type { Appointment, BlockedDate } from "@/generated/prisma/client";
 import AppointmentsPanel from "./AppointmentsPanel";
 import BlockedDatesPanel from "./BlockedDatesPanel";
+import AppointmentBufferPanel from "./AppointmentBufferPanel";
 import AccommodationsPanel from "./AccommodationsPanel";
 import PriceListPanel from "./PriceListPanel";
 import type { Accommodation } from "@/generated/prisma/client";
@@ -14,17 +15,19 @@ import type { PriceListCategoryWithServices } from "@/lib/price-list-data";
 interface Props {
   appointments: Appointment[];
   blockedDates: BlockedDate[];
+  appointmentBufferMinutes: number;
   accommodations: Accommodation[];
   priceListCategories: PriceListCategoryWithServices[];
   dbError?: string | null;
 }
 
-const TABS = ["Overview", "Appointments", "Blocked Dates", "Accommodations", "Price List"] as const;
+const TABS = ["Overview", "Appointments", "Scheduling", "Accommodations", "Price List"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminDashboard({
   appointments,
   blockedDates,
+  appointmentBufferMinutes,
   accommodations,
   priceListCategories,
   dbError,
@@ -232,13 +235,14 @@ export default function AdminDashboard({
           </motion.div>
         )}
 
-        {/* Blocked Dates tab */}
-        {activeTab === "Blocked Dates" && (
+        {/* Scheduling tab */}
+        {activeTab === "Scheduling" && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
+            <AppointmentBufferPanel initialBufferMinutes={appointmentBufferMinutes} />
             <BlockedDatesPanel blockedDates={blockedDates} />
           </motion.div>
         )}
