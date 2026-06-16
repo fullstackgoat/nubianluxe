@@ -23,6 +23,7 @@ function ServiceCard({
   const bullets = normalizeBulletPointsForSave(service.bulletPoints);
   const pricedIndices = getPricedBulletIndices(service.bulletPoints);
   const [selectedBulletIndices, setSelectedBulletIndices] = useState<number[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const pricing = computeServiceSelectionTotals({
     basePriceCents: parseServicePriceCents(service.price),
@@ -50,7 +51,9 @@ function ServiceCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
-      className="group glass-card p-6 flex flex-col gap-3 hover:-translate-y-0.5"
+      className={`group glass-card p-6 flex flex-col gap-3 hover:-translate-y-0.5 transition-transform ${
+        dropdownOpen ? "relative z-50" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <h4
@@ -106,6 +109,7 @@ function ServiceCard({
             pricedIndices={pricedIndices}
             selectedIndices={selectedBulletIndices}
             onToggle={toggleOption}
+            onOpenChange={setDropdownOpen}
             idPrefix={service.id}
           />
         </div>
