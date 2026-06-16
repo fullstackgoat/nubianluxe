@@ -252,6 +252,19 @@ export default function Footer({ services }: { services: FooterServiceLink[] }) 
             </Link>
           </div>
         </div>
+        <div className="section-container pb-6 -mt-2 text-center">
+          <p className="text-white/20 text-[0.65rem] tracking-[0.12em]">
+            Site designed by{" "}
+            <a
+              href="https://fullstackgoat.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/30 hover:text-[var(--color-gold-dark)] transition-colors duration-300"
+            >
+              Full Stack Goat
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );
