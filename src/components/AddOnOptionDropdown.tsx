@@ -33,7 +33,7 @@ export default function AddOnOptionDropdown({
   onToggle,
   onOpenChange,
   idPrefix = "addon",
-  placeholder = "Select add-on option",
+  placeholder = "Select option",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -119,7 +119,7 @@ export default function AddOnOptionDropdown({
         ref={menuRef}
         id={listId}
         role="listbox"
-        aria-label="Add-on options"
+        aria-label="Select options"
         style={{
           top: menuPosition.top,
           left: menuPosition.left,

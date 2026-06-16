@@ -102,7 +102,7 @@ function ServiceCard({
       {pricedIndices.length > 0 && (
         <div className="space-y-2">
           <p className="text-[0.6rem] tracking-[0.2em] uppercase text-[var(--color-gold-dark)]">
-            Add-on options
+            Select Options
           </p>
           <AddOnOptionDropdown
             bulletPoints={service.bulletPoints}
@@ -125,7 +125,7 @@ function ServiceCard({
         </Link>
       ) : (
         <p className="text-white/30 text-xs tracking-[0.12em] uppercase mt-auto">
-          Select an add-on option to book
+          Select an option to book
         </p>
       )}
     </motion.div>

@@ -156,10 +156,10 @@ export default function StepService({ catalog, state, update, onNext, showAddOnS
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[0.6rem] tracking-[0.25em] uppercase text-[var(--color-gold-dark)]">
-                Service Options
+                Select Options
               </p>
               <p className="text-white/50 text-sm mt-1">
-                Choose an add-on from the list. Your total updates automatically.
+                Choose an option from the list. Your total updates automatically.
               </p>
             </div>
             <div className="text-left sm:text-right">
@@ -174,7 +174,7 @@ export default function StepService({ catalog, state, update, onNext, showAddOnS
             selectedIndices={state.selectedBulletIndices}
             onToggle={toggleBulletOption}
             idPrefix={selectedItem.id}
-            placeholder="Select service option"
+            placeholder="Select option"
           />
 
           <p className="text-white/35 text-xs">
